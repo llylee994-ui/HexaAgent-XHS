@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.cache/
+playwright-report/
+test-results/
+*.log
+*.zip
+.DS_Store
+Thumbs.db
+.tmp/
+tmp/
+screenshots/
+
