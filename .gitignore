@@ -7,9 +7,12 @@ playwright-report/
 test-results/
 *.log
 *.zip
+*.tgz
+*.png
+*.jpg
+*.jpeg
 .DS_Store
 Thumbs.db
 .tmp/
 tmp/
 screenshots/
-

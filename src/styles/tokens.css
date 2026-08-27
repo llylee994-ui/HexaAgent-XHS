@@ -1,0 +1,18 @@
+:root {
+  --paper: #f5f0e8;
+  --paper-deep: #ebe2d4;
+  --ink: #24221f;
+  --ink-muted: #716a61;
+  --cinnabar: #b6493d;
+  --cinnabar-dark: #8f332d;
+  --tea: #71816b;
+  --earth: #9a7258;
+  --line: rgba(36, 34, 31, 0.14);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --tap-size: 44px;
+  --radius-card: 24px;
+  --shadow-soft: 0 16px 48px rgba(60, 43, 28, 0.08);
+}

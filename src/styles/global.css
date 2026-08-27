@@ -1,0 +1,94 @@
+@import './tokens.css';
+
+:root {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: ui-rounded, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 255, 255, 0.7), transparent 34rem),
+    var(--paper);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  min-width: var(--tap-size);
+  min-height: var(--tap-size);
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: calc(32px + var(--safe-top))
+    calc(20px + var(--safe-right))
+    calc(32px + var(--safe-bottom))
+    calc(20px + var(--safe-left));
+  place-items: center;
+}
+
+.welcome-card {
+  width: min(100%, 460px);
+  padding: 48px 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 252, 246, 0.66);
+  box-shadow: var(--shadow-soft);
+}
+
+.eyebrow {
+  margin: 0 0 24px;
+  color: var(--cinnabar);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+h1 {
+  margin: 0;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: clamp(3.5rem, 18vw, 6rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 0.95;
+}
+
+.welcome-copy {
+  max-width: 18rem;
+  margin: 24px 0 0;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
