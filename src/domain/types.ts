@@ -1,0 +1,130 @@
+export type YinYang = 'yin' | 'yang'
+export type RawYaoValue = 6 | 7 | 8 | 9
+export type LinePosition = 1 | 2 | 3 | 4 | 5 | 6
+export type QuestionCategory =
+  | 'career'
+  | 'wealth'
+  | 'relationship'
+  | 'study'
+  | 'health'
+  | 'dispute'
+  | 'travel'
+  | 'lost-item'
+  | 'other'
+
+export type CastMethod = 'simulated-coins' | 'physical-coins' | 'manual'
+export type CaseStatus = 'draft' | 'cast' | 'prompted' | 'answered' | 'verified'
+export type PromptVariant = 'concise' | 'professional'
+export type InterpretationTendency =
+  | 'supportive'
+  | 'resistant'
+  | 'mixed'
+  | 'neutral'
+
+export interface CoinThrow {
+  round: LinePosition
+  faces: readonly [0 | 1, 0 | 1, 0 | 1]
+  rawValue: RawYaoValue
+}
+
+export interface Fushen {
+  liuqin: string
+  zhi: string
+}
+
+export interface YaoLine {
+  position: LinePosition
+  rawValue: RawYaoValue
+  type: YinYang
+  changing: boolean
+  gan: string
+  zhi: string
+  wuxing: string
+  liuqin: string
+  liushen: string
+  shiYing: 'shi' | 'ying' | null
+  xunKong: boolean
+  fushen: Fushen | null
+}
+
+export interface HexagramFigure {
+  name: string
+  upperTrigram: string
+  lowerTrigram: string
+  palace: string
+  palaceElement: string
+  lines: YaoLine[]
+}
+
+export interface Sizhu {
+  year: string
+  month: string
+  day: string
+  hour: string
+}
+
+export interface HexagramChart {
+  original: HexagramFigure
+  changed: HexagramFigure | null
+  changingLines: LinePosition[]
+  allChanging: boolean
+  sizhu: Sizhu
+  xunKong: readonly [string, string]
+}
+
+export interface InterpretationObservation {
+  ruleId: string
+  observation: string
+  basis: string
+  tendency: InterpretationTendency
+  linePositions: LinePosition[]
+}
+
+export interface PromptSnapshot {
+  id: string
+  variant: PromptVariant
+  version: string
+  content: string
+  createdAt: string
+}
+
+export interface AiAnswer {
+  id: string
+  source: string
+  promptId: string
+  content: string
+  createdAt: string
+}
+
+export interface DivinationCase {
+  id: string
+  schemaVersion: number
+  engineVersion: string
+  status: CaseStatus
+  question: string
+  category: QuestionCategory
+  note: string
+  castAt: string
+  method: CastMethod
+  coinThrows: CoinThrow[]
+  rawValues: RawYaoValue[]
+  chart: HexagramChart | null
+  observations: InterpretationObservation[]
+  prompts: PromptSnapshot[]
+  answers: AiAnswer[]
+  title: string
+  tags: string[]
+  verification: string
+  createdAt: string
+  updatedAt: string
+  parentCaseId: string | null
+}
+
+export interface ValidationIssue {
+  path: string
+  message: string
+}
+
+export type ValidationResult =
+  | { ok: true }
+  | { ok: false; issues: ValidationIssue[] }
