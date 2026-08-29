@@ -32,6 +32,9 @@ export interface Fushen {
   zhi: string
 }
 
+/** 允许专业编辑人工覆盖的爻级字段 */
+export type OverrideField = 'gan' | 'zhi' | 'liuqin' | 'liushen' | 'shiYing' | 'xunKong'
+
 export interface YaoLine {
   position: LinePosition
   rawValue: RawYaoValue
@@ -45,6 +48,8 @@ export interface YaoLine {
   shiYing: 'shi' | 'ying' | null
   xunKong: boolean
   fushen: Fushen | null
+  /** 已被人工覆盖的字段；缺省视为全部由引擎计算 */
+  overriddenFields?: readonly OverrideField[]
 }
 
 export interface HexagramFigure {
