@@ -1,0 +1,166 @@
+import type { DivinationCase } from '../domain/types'
+import { toStorageError } from './errors'
+import { migrateCase } from './migrations'
+
+const DB_NAME = 'wenyao'
+const DB_VERSION = 1
+const CASE_STORE = 'cases'
+
+export interface CaseRepository {
+  /** 全部可写卦例，按更新时间倒序 */
+  list(): Promise<DivinationCase[]>
+  get(id: string): Promise<DivinationCase | null>
+  /** 新增或整体更新；空间不足时抛出 StorageFullError 且不删除旧记录 */
+  put(value: DivinationCase): Promise<void>
+  delete(id: string): Promise<void>
+  /** 按问题、标题、卦名、标签模糊搜索（不区分大小写） */
+  search(query: string): Promise<DivinationCase[]>
+  /** 修改已完成卦象：复制为新版本草稿，原记录不变 */
+  duplicate(id: string): Promise<DivinationCase>
+}
+
+function openDatabase(indexedDB: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(CASE_STORE)) {
+        db.createObjectStore(CASE_STORE, { keyPath: 'id' })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB 打开失败'))
+  })
+}
+
+async function withStore<T>(
+  db: IDBDatabase,
+  mode: IDBTransactionMode,
+  action: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const transaction = db.transaction(CASE_STORE, mode)
+    const request = action(transaction.objectStore(CASE_STORE))
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB 操作失败'))
+  })
+}
+
+function hexagramNames(value: DivinationCase): string[] {
+  const names: string[] = []
+  if (value.chart) {
+    names.push(value.chart.original.name)
+    if (value.chart.changed) {
+      names.push(value.chart.changed.name)
+    }
+  }
+  return names
+}
+
+function matchesQuery(value: DivinationCase, query: string): boolean {
+  const haystack = [
+    value.question,
+    value.title,
+    ...value.tags,
+    ...hexagramNames(value),
+  ]
+    .join('\n')
+    .toLowerCase()
+  return haystack.includes(query)
+}
+
+function sortByUpdatedAtDesc(values: DivinationCase[]): DivinationCase[] {
+  return [...values].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0))
+}
+
+export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedDB): CaseRepository {
+  if (!indexedDB) {
+    throw new Error('IndexedDB 不可用')
+  }
+
+  async function loadAll(): Promise<DivinationCase[]> {
+    const db = await openDatabase(indexedDB)
+    try {
+      const records = await withStore(db, 'readonly', (store) => store.getAll())
+      return sortByUpdatedAtDesc(
+        records
+          .map((record) => migrateCase(record))
+          .filter((result): result is Extract<MigrationResult, { mode: 'writable' }> => result.mode === 'writable')
+          .map((result) => result.value),
+      )
+    } finally {
+      db.close()
+    }
+  }
+
+  return {
+    async list() {
+      return loadAll()
+    },
+
+    async get(id) {
+      const db = await openDatabase(indexedDB)
+      try {
+        const record = await withStore(db, 'readonly', (store) => store.get(id))
+        if (!record) {
+          return null
+        }
+        const migrated = migrateCase(record)
+        return migrated.mode === 'writable' ? migrated.value : null
+      } finally {
+        db.close()
+      }
+    },
+
+    async put(value) {
+      const db = await openDatabase(indexedDB)
+      try {
+        await withStore(db, 'readwrite', (store) => store.put(value as unknown as Record<string, unknown>))
+      } catch (error) {
+        // 不删除任何已有记录，交给调用方展示清理入口
+        throw toStorageError(error)
+      } finally {
+        db.close()
+      }
+    },
+
+    async delete(id) {
+      const db = await openDatabase(indexedDB)
+      try {
+        await withStore(db, 'readwrite', (store) => store.delete(id))
+      } finally {
+        db.close()
+      }
+    },
+
+    async search(query) {
+      const normalized = query.trim().toLowerCase()
+      if (!normalized) {
+        return []
+      }
+      const all = await loadAll()
+      return all.filter((value) => matchesQuery(value, normalized))
+    },
+
+    async duplicate(id) {
+      const source = await this.get(id)
+      if (!source) {
+        throw new Error('卦例不存在，无法复制')
+      }
+      const now = new Date().toISOString()
+      const copy: DivinationCase = {
+        ...structuredClone(source),
+        id: crypto.randomUUID(),
+        parentCaseId: source.id,
+        status: 'draft',
+        title: source.title ? `${source.title}（副本）` : '',
+        createdAt: now,
+        updatedAt: now,
+      }
+      await this.put(copy)
+      return copy
+    },
+  }
+}
+
+type MigrationResult = ReturnType<typeof migrateCase>
