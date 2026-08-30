@@ -1,4 +1,5 @@
-import type { RawYaoValue, YinYang } from '../domain/types'
+import type { LinePosition, RawYaoValue, YinYang } from '../domain/types'
+import type { ReactNode } from 'react'
 
 export interface CoinProps {
   face: 0 | 1
@@ -77,6 +78,72 @@ export function ProgressHeader({ question, completedCount }: ProgressHeaderProps
       {question ? <p className="progress-header__question">{question}</p> : null}
       <p className="progress-header__progress">第 {nextPosition} 爻 / 共六爻</p>
     </header>
+  )
+}
+
+export interface HexagramLinesProps {
+  figure: import('../engines/hexagram/engine').BasicHexagramFigure | import('../domain/types').HexagramFigure
+  changingLines?: readonly LinePosition[]
+  detailed?: boolean
+}
+
+/** 卦象六爻：simple 模式只画爻线，detailed 模式带纳甲六亲六神 */
+export function HexagramLines({ figure, changingLines = [], detailed = false }: HexagramLinesProps) {
+  return (
+    <ul className="yao-stack" aria-label={`${figure.name}卦爻`}>
+      {[...figure.lines].reverse().map((line) => {
+        const changing = changingLines.includes(line.position)
+        return (
+          <li key={line.position} className={`yao-stack__item ${changing ? 'yao-stack__item--changing' : ''}`}>
+            <span className="yao-stack__label">
+              第{line.position}爻 {line.type === 'yang' ? '阳' : '阴'}
+              {changing ? '·动' : ''}
+            </span>
+            <span className="yao-line yao-line--yang" aria-hidden="true" style={line.type === 'yin' ? { background: 'linear-gradient(90deg, currentColor 0 44%, transparent 44% 56%, currentColor 56% 100%)' } : undefined} />
+            {detailed && 'liuqin' in line ? (
+              <span className="yao-stack__detail">
+                {line.liushen} {line.gan}{line.zhi}({line.wuxing}) {line.liuqin}
+                {line.shiYing === 'shi' ? ' 世' : line.shiYing === 'ying' ? ' 应' : ''}
+                {line.xunKong ? ' 旬空' : ''}
+                {'fushen' in line && line.fushen ? ` 伏神:${line.fushen.liuqin}${line.fushen.zhi}` : ''}
+              </span>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+export interface DisclaimerProps {
+  items: readonly string[]
+}
+
+export function Disclaimer({ items }: DisclaimerProps) {
+  return (
+    <footer className="disclaimer">
+      {items.map((item) => (
+        <p key={item} className="disclaimer__item">{item}</p>
+      ))}
+    </footer>
+  )
+}
+
+export interface DisclosureProps {
+  title: string
+  open: boolean
+  onToggle(): void
+  children: ReactNode
+}
+
+export function Disclosure({ title, open, onToggle, children }: DisclosureProps) {
+  return (
+    <section className="disclosure">
+      <button type="button" className="btn disclosure__toggle" aria-expanded={open} onClick={onToggle}>
+        {open ? `收起${title}` : `展开${title}`}
+      </button>
+      {open ? <div className="disclosure__body">{children}</div> : null}
+    </section>
   )
 }
 

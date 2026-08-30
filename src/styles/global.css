@@ -382,6 +382,163 @@ button.coin {
   gap: 12px;
 }
 
+/* ── 结果页 ──────────────────────────────── */
+.result-page__reminder {
+  padding: 10px 14px;
+  border: 1px solid var(--earth);
+  border-radius: var(--radius-card);
+  background: rgba(166, 124, 82, 0.08);
+}
+
+.hero-card,
+.prompt-panel,
+.answer-panel,
+.save-panel,
+.observations,
+.full-chart,
+.reference-text {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 252, 246, 0.85);
+  box-shadow: var(--shadow-soft);
+}
+
+.hero-card__question {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.hero-card__meta {
+  margin: -6px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.hero-card__summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--cinnabar);
+  background: rgba(178, 59, 43, 0.05);
+  line-height: 1.7;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.prompt-panel__actions,
+.prompt-panel__content {
+  width: 100%;
+}
+
+.prompt-panel__content {
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-button);
+  background: #fff;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.prompt-panel__answer-cta {
+  justify-self: start;
+}
+
+textarea {
+  min-height: var(--tap-size);
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-button);
+  background: #fff;
+  font: inherit;
+  resize: vertical;
+}
+
+.observations__list,
+.answer-panel__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.observations__item,
+.answer-panel__item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+}
+
+.observations__text,
+.answer-panel__content {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.observations__basis {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.observations__tendency {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.observations__tendency--supportive { color: var(--tea); }
+.observations__tendency--resistant { color: var(--earth); }
+.observations__tendency--mixed { color: var(--cinnabar); }
+
+.full-chart__meta {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.full-chart__subtitle {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+}
+
+.yao-stack__detail {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.answer-panel__meta {
+  margin: 0 0 4px;
+  color: var(--cinnabar);
+  font-size: 0.8rem;
+}
+
+.disclaimer {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.disclaimer__item {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.disclosure {
+  display: grid;
+  gap: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
