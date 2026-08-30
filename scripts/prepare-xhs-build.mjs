@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const MODULE_SCRIPT_PATTERN = /<script\b([^>]*)>\s*<\/script\s*>/gi
@@ -21,7 +21,18 @@ export async function prepareXhsBuild(root) {
     throw new Error('Module entry must use a ./ relative path')
   }
 
+  const entryPath = resolve(root, src)
+  const entryRelativePath = relative(resolve(root), entryPath)
+  if (entryRelativePath === '..' || entryRelativePath.startsWith(`..\\`) || entryRelativePath.startsWith('../')) {
+    throw new Error('Module entry must stay within the build root')
+  }
+
+  const bundle = await readFile(entryPath, 'utf8')
+  const sanitizedBundle = bundle.replaceAll('navigator.connection', 'undefined')
   const preparedHtml = html.replace(entry[0], `<script defer src="${src}"></script>`)
+  if (sanitizedBundle !== bundle) {
+    await writeFile(entryPath, sanitizedBundle)
+  }
   await writeFile(indexPath, preparedHtml)
 
   return { entry: src }

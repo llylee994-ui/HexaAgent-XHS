@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -6,7 +6,9 @@ import { prepareXhsBuild } from '../../scripts/prepare-xhs-build.mjs'
 
 async function makeBuild(html: string) {
   const root = await mkdtemp(join(tmpdir(), 'hexagent-xhs-prepare-'))
+  await mkdir(join(root, 'assets'))
   await writeFile(join(root, 'index.html'), html)
+  await writeFile(join(root, 'assets', 'app.js'), 'const ready = true')
   return root
 }
 
@@ -38,5 +40,19 @@ describe('prepareXhsBuild', () => {
     const root = await makeBuild('<script type="module" src="/assets/app.js"></script>')
 
     await expect(prepareXhsBuild(root)).rejects.toThrow(/\.\/ relative path/i)
+  })
+
+  it('removes React DOM navigator.connection capability probes from the classic bundle', async () => {
+    const root = await makeBuild('<script type="module" src="./assets/app.js"></script>')
+    await writeFile(
+      join(root, 'assets', 'app.js'),
+      'const speed = navigator.connection ? navigator.connection.downlink : 5',
+    )
+
+    await prepareXhsBuild(root)
+
+    await expect(readFile(join(root, 'assets', 'app.js'), 'utf8')).resolves.toBe(
+      'const speed = undefined ? undefined.downlink : 5',
+    )
   })
 })
