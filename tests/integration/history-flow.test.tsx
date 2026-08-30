@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CaseStatus, DivinationCase, PromptSnapshot } from '../../src/domain/types'
 import { createDraft } from '../../src/domain/factories'
@@ -93,11 +93,15 @@ describe('历史页时间线', () => {
     await openHistory(user)
     await screen.findByText('标题D')
 
-    await user.type(screen.getByLabelText('搜索卦例'), '面试')
+    fireEvent.change(screen.getByLabelText('搜索卦例'), { target: { value: '面试' } })
     await user.click(screen.getByRole('button', { name: '搜索' }))
-    await waitFor(() => expect(screen.queryByText('标题A')).toBeNull())
-
-    expect(screen.getByText('标题B')).toBeTruthy()
+    await waitFor(
+      () => {
+        expect(screen.queryByText('标题A')).toBeNull()
+        expect(screen.getByText('标题B')).toBeTruthy()
+      },
+      { timeout: 5000 },
+    )
 
     await user.click(screen.getByRole('button', { name: '清除' }))
     expect(await screen.findByText('标题A')).toBeTruthy()

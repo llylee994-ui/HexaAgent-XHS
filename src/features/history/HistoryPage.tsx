@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
 import { ConfirmDialog } from '../../components'
 import { createCaseRepository, type CaseEntry, type CaseRepository } from '../../storage/case-db'
@@ -61,7 +61,9 @@ function ReadonlyCard({ raw, reason }: { raw: unknown; reason: string }) {
 }
 
 /** 卦例记录：时间线卡片 + 搜索 + 删除确认 + 修改副本；只读记录与存储满有明确提示 */
-export function HistoryPage({ repository = createCaseRepository(), onView, onBack }: HistoryPageProps) {
+export function HistoryPage({ repository: injectedRepository, onView, onBack }: HistoryPageProps) {
+  // 仓库实例必须稳定，否则每次渲染都会触发重新加载并覆盖搜索结果
+  const repository = useMemo(() => injectedRepository ?? createCaseRepository(), [injectedRepository])
   const [entries, setEntries] = useState<CaseEntry[]>([])
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)

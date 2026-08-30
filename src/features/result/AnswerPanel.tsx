@@ -15,7 +15,8 @@ export function AnswerPanel({ caseValue, promptId, open, onChange }: AnswerPanel
   const [content, setContent] = useState('')
   const [source, setSource] = useState<string>('DeepSeek')
 
-  if (!open) return null
+  // 已保存的回答始终展示；粘贴表单仅在点击主按钮后出现
+  if (!open && caseValue.answers.length === 0) return null
 
   const save = () => {
     if (!content.trim() || !promptId) return
@@ -38,27 +39,31 @@ export function AnswerPanel({ caseValue, promptId, open, onChange }: AnswerPanel
   return (
     <section className="answer-panel" aria-label="AI 回答">
       <h2 className="section-title">AI 回答</h2>
-      <label className="field">
-        <span className="field__label">粘贴 AI 回答</span>
-        <textarea
-          aria-label="粘贴 AI 回答"
-          rows={6}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          placeholder="回到外部 AI 界面复制回答，粘贴到这里保存"
-        />
-      </label>
-      <label className="field field--inline">
-        <span className="field__label">AI 来源</span>
-        <select aria-label="AI 来源" value={source} onChange={(event) => setSource(event.target.value)}>
-          {AI_SOURCES.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
-        </select>
-      </label>
-      <button type="button" className="btn btn--primary" onClick={save} disabled={!content.trim()}>
-        保存回答
-      </button>
+      {open ? (
+        <>
+          <label className="field">
+            <span className="field__label">粘贴 AI 回答</span>
+            <textarea
+              aria-label="粘贴 AI 回答"
+              rows={6}
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="回到外部 AI 界面复制回答，粘贴到这里保存"
+            />
+          </label>
+          <label className="field field--inline">
+            <span className="field__label">AI 来源</span>
+            <select aria-label="AI 来源" value={source} onChange={(event) => setSource(event.target.value)}>
+              {AI_SOURCES.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <button type="button" className="btn btn--primary" onClick={save} disabled={!content.trim()}>
+            保存回答
+          </button>
+        </>
+      ) : null}
 
       {caseValue.answers.length > 0 ? (
         <ul className="answer-panel__list">

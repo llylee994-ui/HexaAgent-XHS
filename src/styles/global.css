@@ -320,6 +320,7 @@ button.coin {
 /* ── 快速录入 ─────────────────────────────── */
 .quick-entry__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -541,12 +542,14 @@ textarea {
 
 /* ── 历史页 ──────────────────────────────── */
 .search-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
 }
 
 .search-bar input {
   flex: 1;
+  min-width: 0;
   min-height: var(--tap-size);
   padding: 8px 10px;
   border: 1px solid var(--line-strong);
