@@ -9,7 +9,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preview": "vite preview",
-    "build": "tsc -b && vite build && npm run verify:xhs",
+    "build": "tsc -b && vite build && node scripts/prepare-xhs-build.mjs dist && npm run verify:xhs",
     "verify:xhs": "node scripts/verify-xhs-build.mjs dist",
     "lint": "eslint ."
   },
