@@ -8,21 +8,25 @@
 npm ci
 npm run lint
 npm test
-npm run build        # tsc -b && vite build && verify:xhs（内嵌合规扫描）
+npm run build        # Vite 构建 → 经典脚本处理 → verify:xhs
 npm run test:e2e     # 需先完成 build；本地起 4173 预览
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-xhs.ps1 -IconPath release/wenyao-icon-512.png
 ```
 
-全部通过后，`dist/` 即为上传产物：压缩时以 `dist/` 的**内容**作为包根目录（`index.html` 位于压缩包根），压缩包本身不提交 Git。
+`npm run test:e2e` 预览的是已经转换和扫描过的最终 `dist/`，不能用开发服务器预览代替。全部通过后，发布脚本会把 `dist/` 的**内容**压缩到 `release/wenyao-xhs-0.1.0.zip`，并重新打开 ZIP 逐项核对文件与哈希；`index.html` 位于 ZIP 根目录。`release/` 仅为本地交付产物，不提交 Git。
+
+本地门禁通过后，先把 ZIP 与图标上传小红书 PC 模拟器预览，再按第 4 节进行真机测试；平台容器验收不替代本地测试。
 
 ## 2. 合规自检清单
 
 每次发版前逐项确认：
 
 - [ ] `node scripts/verify-xhs-build.mjs dist` 输出 `0 violations`
-- [ ] `dist/index.html` 是唯一 HTML 入口，脚本/样式引用均为包内相对路径
+- [ ] `dist/index.html` 是唯一 HTML 入口，入口脚本为外置经典 `defer` 脚本，脚本/样式引用均为包内相对路径
 - [ ] 产物中无 `http://`、`https://` 外链、无 `fetch`/`XMLHttpRequest`/`WebSocket`/`EventSource`/`WebRTC`
-- [ ] 无内联脚本、`eval`、`new Function`、Worker、Service Worker、WASM、iframe、`download`、`target=_blank`
+- [ ] 无 `type="module"`、模块语法、内联脚本、`eval`、`new Function`、Worker、Service Worker、WASM、iframe、`download`、`target=_blank`
 - [ ] E2E `offline.spec.ts` 通过（零外部请求 + 离线重载可用）
+- [ ] `release/release-summary.md` 显示 ZIP 小于 2MB，根入口、扩展名和逐文件哈希全部通过
 
 ## 3. 能力声明
 
