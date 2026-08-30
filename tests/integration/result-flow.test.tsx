@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createDraft } from '../../src/domain/factories'
 import type { CoinThrow, DivinationCase } from '../../src/domain/types'
 import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
 import { ResultPage } from '../../src/features/result/ResultPage'
+import { ReferenceText } from '../../src/features/result/ReferenceText'
 
 const CAST_AT = new Date(2026, 7, 28, 12, 0)
 
@@ -67,6 +68,49 @@ describe('结果页首屏卡', () => {
   it('未保存 AI 回答时顶部显示提醒', async () => {
     await setup()
     expect(screen.getByText('这条卦例还没有保存 AI 解读')).toBeTruthy()
+  })
+})
+
+describe('卦爻经典参考', () => {
+  it('展开后显示本卦卦辞、实际动爻、折叠全文与变卦卦辞', async () => {
+    const { user } = await setup()
+    await user.click(screen.getByRole('button', { name: '展开完整排盘' }))
+
+    const reference = screen.getByRole('region', { name: '卦爻参考' })
+    expect(within(reference).getByText('姤：女壮，勿用取女。')).toBeTruthy()
+    expect(within(reference).getByText(/吸引力很强却未必适合长期结合/)).toBeTruthy()
+    const movingHeading = within(reference).getByRole('heading', { name: '本次动爻（1爻）' })
+    const movingSection = movingHeading.closest('section')
+    expect(movingSection).not.toBeNull()
+    expect(within(movingSection!).getByText('初六')).toBeTruthy()
+    expect(within(movingSection!).getByText(/不良苗头刚出现就应牢牢制止/)).toBeTruthy()
+
+    const allLines = within(reference).getByText('查看全部爻辞').closest('details')
+    expect(allLines).not.toBeNull()
+    expect(allLines?.hasAttribute('open')).toBe(false)
+    expect(within(reference).getByRole('heading', { name: '变卦 · 乾为天' })).toBeTruthy()
+    expect(within(reference).getByText('乾：元，亨，利，贞。')).toBeTruthy()
+    expect(within(reference).getByText('卦爻辞反映卦本身的含义，不等同于六爻纳甲综合判断。')).toBeTruthy()
+  })
+
+  it('静卦不擅自指定动爻', () => {
+    const chart = buildChart([7, 7, 7, 7, 7, 7], CAST_AT)
+    render(<ReferenceText chart={chart} />)
+
+    expect(screen.queryByRole('heading', { name: /本次动爻/ })).toBeNull()
+    expect(screen.getByText('本卦无动爻，因此不单独指定某条爻辞。')).toBeTruthy()
+  })
+
+  it('未知卦名安全降级且保留卦宫摘要', () => {
+    const chart = buildChart([7, 7, 7, 7, 7, 7], CAST_AT)
+    const unknownChart = {
+      ...chart,
+      original: { ...chart.original, name: '未知卦' },
+    }
+    render(<ReferenceText chart={unknownChart} />)
+
+    expect(screen.getByText('该卦经典文本暂缺。')).toBeTruthy()
+    expect(screen.getByText(/未知卦属乾宫（金），世爻在第6爻/)).toBeTruthy()
   })
 })
 

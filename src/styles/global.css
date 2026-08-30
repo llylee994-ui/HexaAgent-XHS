@@ -510,6 +510,119 @@ textarea {
   font-size: 0.95rem;
 }
 
+.reference-text__meta {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.classic-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.classic-section--changed,
+.reference-text__disclaimer {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.classic-section__title,
+.classic-line__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.classic-section__title {
+  font-size: 1rem;
+}
+
+.classic-section__subtitle {
+  margin: 0;
+  color: var(--cinnabar);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.classic-passage {
+  display: grid;
+  gap: 8px;
+}
+
+.classic-passage__original,
+.classic-passage__plain {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-button);
+}
+
+.classic-passage__original {
+  border-left: 3px solid var(--earth);
+  background: rgba(166, 124, 82, 0.06);
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+
+.classic-passage__plain {
+  background: rgba(255, 252, 246, 0.65);
+}
+
+.classic-passage__label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.classic-passage p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.75;
+}
+
+.classic-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.classic-line {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+}
+
+.classic-line--moving {
+  border-left: 4px solid var(--cinnabar);
+  background: rgba(178, 59, 43, 0.035);
+}
+
+.classic-line__label {
+  color: var(--cinnabar);
+  font-size: 0.9rem;
+}
+
+.classic-details {
+  border-top: 1px solid var(--line);
+}
+
+.classic-details summary {
+  display: flex;
+  min-height: var(--tap-size);
+  align-items: center;
+  color: var(--cinnabar);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.classic-lines--all {
+  padding-top: 4px;
+}
+
 .yao-stack__detail {
   color: var(--ink-muted);
   font-size: 0.8rem;
