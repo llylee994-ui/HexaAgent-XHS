@@ -18,6 +18,20 @@ test('一分钟内完成手动录入并保存两个 AI 回答', async ({ page })
   await page.getByRole('button', { name: '生成正式结果' }).click()
   await expect(page.getByText('本卦：天风姤')).toBeVisible()
 
+  // 经典参考离线显示本卦、动爻、变卦和六爻全文
+  await page.getByRole('button', { name: '展开完整排盘' }).click()
+  const reference = page.getByRole('region', { name: '卦爻参考' })
+  await expect(reference.getByText('姤：女壮，勿用取女。')).toBeVisible()
+  await expect(reference.getByRole('heading', { name: '本次动爻（1爻）' })).toBeVisible()
+  await expect(reference.getByText('乾：元，亨，利，贞。')).toBeVisible()
+  await expect(reference.getByText('白话').first()).toBeVisible()
+
+  const allLines = reference.locator('details')
+  await expect(allLines).not.toHaveAttribute('open', '')
+  await allLines.getByText('查看全部爻辞').click()
+  await expect(allLines.locator('.classic-line')).toHaveCount(6)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+
   // 专业版提示词包含完整排盘与七条约束（手动录入无投币记录，显示原始爻值）
   await page.getByRole('button', { name: '生成专业版提示词' }).click()
   const prompt = page.getByLabel('提示词内容')
