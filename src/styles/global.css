@@ -82,6 +82,306 @@ h1 {
   line-height: 1.8;
 }
 
+/* ── 页面骨架 ─────────────────────────────── */
+.page {
+  width: min(100%, 460px);
+  display: grid;
+  gap: 16px;
+}
+
+.page__title {
+  margin: 0;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.page__title--brand {
+  font-size: clamp(3rem, 14vw, 4.5rem);
+}
+
+.page__subtitle {
+  margin: -8px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.page__actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ── 按钮 ────────────────────────────────── */
+.btn {
+  min-height: var(--tap-size);
+  padding: 10px 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-button);
+  background: rgba(255, 252, 246, 0.8);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  border-color: var(--cinnabar);
+  background: var(--cinnabar);
+  color: #fff;
+}
+
+.btn--small {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+
+/* ── 表单 ────────────────────────────────── */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field--inline {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.field__label {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.field input,
+.field select {
+  min-height: var(--tap-size);
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-button);
+  background: #fff;
+}
+
+.question-step,
+.method-step,
+.coin-stage,
+.quick-entry,
+.professional-editor,
+.review-panel,
+.home-entries,
+.home-recent {
+  display: grid;
+  gap: 12px;
+}
+
+/* ── 入口卡 ──────────────────────────────── */
+.entry-card {
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 252, 246, 0.8);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry-card__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.entry-card__desc {
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+/* ── 铜钱与爻线 ───────────────────────────── */
+.coin-stage__coins {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.coin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--earth);
+  border-radius: 50%;
+  background: #f7edd8;
+  color: var(--earth);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+button.coin {
+  cursor: pointer;
+}
+
+.coin--front {
+  background: var(--cinnabar);
+  border-color: var(--cinnabar);
+  color: #fff;
+}
+
+.yao-stack {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yao-stack__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.yao-stack__label {
+  min-width: 84px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.yao-line {
+  flex: 1;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.yao-line--yang {
+  background: var(--ink);
+}
+
+.yao-line--yin {
+  background: linear-gradient(90deg, var(--ink) 0 44%, transparent 44% 56%, var(--ink) 56% 100%);
+}
+
+.yao-stack__item--changing .yao-line {
+  background-color: var(--cinnabar);
+}
+
+.yao-stack__item--changing .yao-line--yang {
+  background: var(--cinnabar);
+}
+
+.yao-stack__item--changing .yao-line--yin {
+  background: linear-gradient(90deg, var(--cinnabar) 0 44%, transparent 44% 56%, var(--cinnabar) 56% 100%);
+}
+
+/* ── 进度与提示 ───────────────────────────── */
+.progress-header {
+  display: grid;
+  gap: 4px;
+}
+
+.progress-header__question {
+  margin: 0;
+  font-weight: 600;
+}
+
+.progress-header__progress {
+  margin: 0;
+  color: var(--cinnabar);
+  font-size: 0.9rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.hint--warning {
+  color: var(--earth);
+}
+
+.review-panel {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 252, 246, 0.8);
+}
+
+.review-panel__line {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* ── 快速录入 ─────────────────────────────── */
+.quick-entry__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quick-entry__label {
+  min-width: 48px;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.quick-entry__toggles {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.quick-entry__row select {
+  min-width: 96px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-button);
+  background: #fff;
+}
+
+/* ── 确认对话框 ───────────────────────────── */
+.confirm-dialog {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(28, 25, 20, 0.45);
+}
+
+.confirm-dialog__panel {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 320px);
+  padding: 20px;
+  border-radius: var(--radius-card);
+  background: var(--paper);
+  box-shadow: var(--shadow-soft);
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.confirm-dialog__message {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
