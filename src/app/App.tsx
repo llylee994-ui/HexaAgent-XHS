@@ -6,6 +6,7 @@ import { HomePage } from '../features/home/HomePage'
 import { CastPage } from '../features/cast/CastPage'
 import { ManualPage } from '../features/manual/ManualPage'
 import { ResultPage } from '../features/result/ResultPage'
+import { HistoryPage } from '../features/history/HistoryPage'
 
 const repository = createCaseRepository()
 
@@ -35,7 +36,15 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      {route === 'home' ? <HomePage onNavigate={setRoute} /> : null}
+      {route === 'home' ? (
+        <HomePage
+          onNavigate={setRoute}
+          onViewCase={(caseValue) => {
+            setActiveCase(caseValue)
+            setRoute('result')
+          }}
+        />
+      ) : null}
       {route === 'cast' ? <CastPage onCaseCreated={handleCaseCreated} /> : null}
       {route === 'manual' ? <ManualPage onCaseCreated={handleCaseCreated} /> : null}
       {route === 'result' && activeCase ? (
@@ -46,13 +55,13 @@ export default function App() {
         />
       ) : null}
       {route === 'history' ? (
-        <section className="page">
-          <h1 className="page__title">卦例记录</h1>
-          <p className="hint">历史卦例与搜索将在后续版本完善。</p>
-          <button type="button" className="btn" onClick={() => setRoute('home')}>
-            返回首页
-          </button>
-        </section>
+        <HistoryPage
+          onView={(caseValue) => {
+            setActiveCase(caseValue)
+            setRoute('result')
+          }}
+          onBack={() => setRoute('home')}
+        />
       ) : null}
     </main>
   )

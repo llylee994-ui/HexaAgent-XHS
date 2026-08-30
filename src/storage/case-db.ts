@@ -6,9 +6,15 @@ const DB_NAME = 'wenyao'
 const DB_VERSION = 1
 const CASE_STORE = 'cases'
 
+export type CaseEntry =
+  | { mode: 'writable'; value: DivinationCase }
+  | { mode: 'readonly'; raw: unknown; reason: string }
+
 export interface CaseRepository {
   /** 全部可写卦例，按更新时间倒序 */
   list(): Promise<DivinationCase[]>
+  /** 全部记录，含迁移失败只读记录（浏览原始摘要用） */
+  listEntries(): Promise<CaseEntry[]>
   get(id: string): Promise<DivinationCase | null>
   /** 新增或整体更新；空间不足时抛出 StorageFullError 且不删除旧记录 */
   put(value: DivinationCase): Promise<void>
@@ -69,8 +75,16 @@ function matchesQuery(value: DivinationCase, query: string): boolean {
   return haystack.includes(query)
 }
 
-function sortByUpdatedAtDesc(values: DivinationCase[]): DivinationCase[] {
-  return [...values].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0))
+function entryUpdatedAt(entry: CaseEntry): string {
+  return entry.mode === 'writable' ? entry.value.updatedAt : ''
+}
+
+function sortByUpdatedAtDesc<T>(values: readonly T[]): T[] {
+  return [...values].sort((a, b) => {
+    const keyA = entryUpdatedAt(a as unknown as CaseEntry)
+    const keyB = entryUpdatedAt(b as unknown as CaseEntry)
+    return keyA < keyB ? 1 : keyA > keyB ? -1 : 0
+  })
 }
 
 export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedDB): CaseRepository {
@@ -78,16 +92,17 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
     throw new Error('IndexedDB 不可用')
   }
 
-  async function loadAll(): Promise<DivinationCase[]> {
+  async function loadEntries(): Promise<CaseEntry[]> {
     const db = await openDatabase(indexedDB)
     try {
       const records = await withStore(db, 'readonly', (store) => store.getAll())
-      return sortByUpdatedAtDesc(
-        records
-          .map((record) => migrateCase(record))
-          .filter((result): result is Extract<MigrationResult, { mode: 'writable' }> => result.mode === 'writable')
-          .map((result) => result.value),
-      )
+      const entries = records.map<CaseEntry>((record) => {
+        const migrated = migrateCase(record)
+        return migrated.mode === 'writable'
+          ? { mode: 'writable', value: migrated.value }
+          : { mode: 'readonly', raw: record, reason: migrated.reason }
+      })
+      return sortByUpdatedAtDesc(entries)
     } finally {
       db.close()
     }
@@ -95,7 +110,14 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
 
   return {
     async list() {
-      return loadAll()
+      const entries = await loadEntries()
+      return entries
+        .filter((entry): entry is Extract<CaseEntry, { mode: 'writable' }> => entry.mode === 'writable')
+        .map((entry) => entry.value)
+    },
+
+    async listEntries() {
+      return loadEntries()
     },
 
     async get(id) {
@@ -138,8 +160,11 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
       if (!normalized) {
         return []
       }
-      const all = await loadAll()
-      return all.filter((value) => matchesQuery(value, normalized))
+      const all = await loadEntries()
+      return all
+        .filter((entry): entry is Extract<CaseEntry, { mode: 'writable' }> => entry.mode === 'writable')
+        .map((entry) => entry.value)
+        .filter((value) => matchesQuery(value, normalized))
     },
 
     async duplicate(id) {
@@ -163,4 +188,3 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
   }
 }
 
-type MigrationResult = ReturnType<typeof migrateCase>
