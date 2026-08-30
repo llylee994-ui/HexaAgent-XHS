@@ -1,25 +1,25 @@
 import type { LinePosition } from '../../domain/types'
 
 export interface ClassicPassage {
-  original: string
-  plain: string
+  readonly original: string
+  readonly plain: string
 }
 
 export interface ClassicLine extends ClassicPassage {
-  position: LinePosition
-  label: string
+  readonly position: LinePosition
+  readonly label: string
 }
 
 export interface ClassicSpecial extends ClassicPassage {
-  kind: 'use-nine' | 'use-six'
-  label: string
+  readonly kind: 'use-nine' | 'use-six'
+  readonly label: string
 }
 
 export interface HexagramClassicText {
-  sequence: number
-  name: string
-  judgement: ClassicPassage
-  lines: readonly [
+  readonly sequence: number
+  readonly name: string
+  readonly judgement: ClassicPassage
+  readonly lines: readonly [
     ClassicLine,
     ClassicLine,
     ClassicLine,
@@ -27,5 +27,5 @@ export interface HexagramClassicText {
     ClassicLine,
     ClassicLine,
   ]
-  special: ClassicSpecial | null
+  readonly special: ClassicSpecial | null
 }

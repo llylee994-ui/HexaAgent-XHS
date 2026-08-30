@@ -101,6 +101,22 @@ describe('卦爻经典参考', () => {
     expect(screen.getByText('本卦无动爻，因此不单独指定某条爻辞。')).toBeTruthy()
   })
 
+  it('多动爻按实际数量展示，乾坤全变显示用九与用六', () => {
+    const twoMoving = buildChart([6, 9, 8, 7, 7, 7], CAST_AT)
+    const { rerender } = render(<ReferenceText chart={twoMoving} />)
+    expect(screen.getByRole('heading', { name: '本次动爻（2爻）' })).toBeTruthy()
+
+    const allQian = buildChart([9, 9, 9, 9, 9, 9], CAST_AT)
+    rerender(<ReferenceText chart={allQian} />)
+    const qianHeading = screen.getByRole('heading', { name: '本次动爻（6爻）' })
+    expect(within(qianHeading.closest('section')!).getByText('用九')).toBeTruthy()
+
+    const allKun = buildChart([6, 6, 6, 6, 6, 6], CAST_AT)
+    rerender(<ReferenceText chart={allKun} />)
+    const kunHeading = screen.getByRole('heading', { name: '本次动爻（6爻）' })
+    expect(within(kunHeading.closest('section')!).getByText('用六')).toBeTruthy()
+  })
+
   it('未知卦名安全降级且保留卦宫摘要', () => {
     const chart = buildChart([7, 7, 7, 7, 7, 7], CAST_AT)
     const unknownChart = {
@@ -111,6 +127,18 @@ describe('卦爻经典参考', () => {
 
     expect(screen.getByText('该卦经典文本暂缺。')).toBeTruthy()
     expect(screen.getByText(/未知卦属乾宫（金），世爻在第6爻/)).toBeTruthy()
+  })
+
+  it('变卦文本缺失时只显示降级提示', () => {
+    const chart = buildChart([6, 7, 7, 7, 7, 7], CAST_AT)
+    const unknownChanged = {
+      ...chart,
+      changed: chart.changed ? { ...chart.changed, name: '未知变卦' } : null,
+    }
+    render(<ReferenceText chart={unknownChanged} />)
+
+    expect(screen.getByText('变卦经典文本暂缺。')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /变卦 ·/ })).toBeNull()
   })
 })
 

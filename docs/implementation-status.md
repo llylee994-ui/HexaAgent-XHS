@@ -27,7 +27,7 @@
 - 古典原文对照 Chinese Text Project《周易》、Project Gutenberg ebook 25501 与维基文库《周易》，详细编辑原则见 `docs/classics-sources.md`。
 - 白话不硬编码爱情、事业、财运吉凶，不替代纳甲、世应、六亲、日月和动变关系的综合判断。
 - 完整性测试锁定 64 卦名称与引擎表一一对应、爻位 1–6、文本非空、乾坤特殊条目及确定性禁语。
-- 增量门禁：`lint` 0 问题 ✅ → `test` 140 通过 ✅ → `build` 0 违规 ✅ → `playwright test` 8 通过 ✅。
+- 增量门禁：`lint` 0 问题 ✅ → `test` 145 通过 ✅ → `build` 0 违规 ✅ → `playwright test` 8 通过 ✅。
 
 ## 各任务步骤完成明细
 

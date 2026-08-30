@@ -27,8 +27,62 @@ export const HEXAGRAM_CLASSICS: readonly HexagramClassicText[] = [
   ...CLASSICS_57_64,
 ]
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isCompletePassage(value: unknown): boolean {
+  return isRecord(value)
+    && typeof value.original === 'string'
+    && value.original.trim() !== ''
+    && typeof value.plain === 'string'
+    && value.plain.trim() !== ''
+}
+
+/** 防止构建期语料被误改成残缺结构后拖垮结果页。 */
+export function isCompleteHexagramClassic(
+  value: unknown,
+): value is HexagramClassicText {
+  if (!isRecord(value)
+    || !Number.isInteger(value.sequence)
+    || typeof value.name !== 'string'
+    || value.name.trim() === ''
+    || !isCompletePassage(value.judgement)
+    || !Array.isArray(value.lines)
+    || value.lines.length !== 6
+  ) {
+    return false
+  }
+
+  for (let index = 0; index < value.lines.length; index += 1) {
+    const line = value.lines[index]
+    if (!isRecord(line)
+      || line.position !== index + 1
+      || typeof line.label !== 'string'
+      || line.label.trim() === ''
+      || !isCompletePassage(line)
+    ) {
+      return false
+    }
+  }
+
+  if (value.special !== null) {
+    if (!isRecord(value.special)
+      || (value.special.kind !== 'use-nine' && value.special.kind !== 'use-six')
+      || typeof value.special.label !== 'string'
+      || value.special.label.trim() === ''
+      || !isCompletePassage(value.special)
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
 const CLASSICS_BY_NAME = new Map<string, HexagramClassicText>()
 for (const item of HEXAGRAM_CLASSICS) {
+  if (!isCompleteHexagramClassic(item)) continue
   if (CLASSICS_BY_NAME.has(item.name)) {
     throw new Error(`经典文本卦名重复：${item.name}`)
   }

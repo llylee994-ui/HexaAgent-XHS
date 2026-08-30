@@ -20,12 +20,20 @@ export function defineHexagram(
   lines: readonly [LineSeed, LineSeed, LineSeed, LineSeed, LineSeed, LineSeed],
   specialSeed?: SpecialSeed,
 ): HexagramClassicText {
-  const mappedLines = lines.map(([label, original, plain], index) => ({
-    position: (index + 1) as LinePosition,
-    label,
-    original,
-    plain,
-  })) as unknown as HexagramClassicText['lines']
+  const line = (position: LinePosition, seed: LineSeed) => ({
+    position,
+    label: seed[0],
+    original: seed[1],
+    plain: seed[2],
+  })
+  const mappedLines: HexagramClassicText['lines'] = [
+    line(1, lines[0]),
+    line(2, lines[1]),
+    line(3, lines[2]),
+    line(4, lines[3]),
+    line(5, lines[4]),
+    line(6, lines[5]),
+  ]
 
   const special = specialSeed
     ? {
