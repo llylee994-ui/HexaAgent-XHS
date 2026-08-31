@@ -7,6 +7,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.Drawing
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -122,12 +123,43 @@ try {
     }
 
     New-Item -ItemType Directory -Path $releaseDirectory -Force | Out-Null
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        $dist,
+    $zipStream = [System.IO.File]::Open(
         $temporaryZipPath,
-        [System.IO.Compression.CompressionLevel]::Optimal,
-        $false
+        [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::ReadWrite,
+        [System.IO.FileShare]::None
     )
+    try {
+        $zipArchive = New-Object System.IO.Compression.ZipArchive(
+            $zipStream,
+            [System.IO.Compression.ZipArchiveMode]::Create,
+            $true
+        )
+        try {
+            foreach ($file in $distFiles) {
+                $entryName = (Get-RelativeFilePath $dist $file.FullName).Replace("\", "/")
+                $entry = $zipArchive.CreateEntry(
+                    $entryName,
+                    [System.IO.Compression.CompressionLevel]::Optimal
+                )
+                $sourceStream = [System.IO.File]::OpenRead($file.FullName)
+                $entryStream = $entry.Open()
+                try {
+                    $sourceStream.CopyTo($entryStream)
+                }
+                finally {
+                    $entryStream.Dispose()
+                    $sourceStream.Dispose()
+                }
+            }
+        }
+        finally {
+            $zipArchive.Dispose()
+        }
+    }
+    finally {
+        $zipStream.Dispose()
+    }
 
     $zipFile = Get-Item -LiteralPath $temporaryZipPath
     if ($zipFile.Length -gt $maxZipBytes) {
@@ -138,7 +170,10 @@ try {
     try {
         $zipManifest = @{}
         foreach ($entry in $archive.Entries) {
-            $entryName = $entry.FullName.Replace("\", "/")
+            $entryName = $entry.FullName
+            if ($entryName.Contains("\")) {
+                throw "ZIP contains a backslash path separator: $entryName"
+            }
             if ($entryName.EndsWith("/")) {
                 continue
             }
