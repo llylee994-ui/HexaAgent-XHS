@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { DivinationCase } from '../../src/domain/types'
 import { ManualPage } from '../../src/features/manual/ManualPage'
-import { draftStore } from '../../src/storage/draft-store'
+import { manualDraftStore } from '../../src/features/manual/manual-draft-store'
+
+beforeEach(() => localStorage.clear())
 
 async function startManualEntry(user: ReturnType<typeof userEvent.setup>) {
   render(<ManualPage onCaseCreated={() => {}} />)
@@ -11,88 +14,56 @@ async function startManualEntry(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: '下一步' }))
 }
 
-describe('手动排盘流程', () => {
-  it('直接录入 6/7/8/9 并实时预览本卦与变卦', async () => {
+describe('专业手动排盘流程', () => {
+  it('搜索地天泰后自动填充六神和世应，且不暴露内部爻值', async () => {
     const user = userEvent.setup()
     await startManualEntry(user)
 
-    const values = ['6', '7', '7', '7', '7', '7']
-    for (let i = 0; i < 6; i++) {
-      await user.selectOptions(screen.getByLabelText(`第${i + 1}爻爻值`), values[i])
-    }
+    await user.type(screen.getByRole('combobox', { name: '搜索卦名' }), '泰')
+    await user.click(screen.getByRole('option', { name: '地天泰' }))
 
-    expect(screen.getByText('本卦：天风姤')).toBeTruthy()
-    expect(screen.getByText('变卦：乾为天')).toBeTruthy()
+    expect(screen.getByText('本卦：地天泰')).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/六神$/)).toHaveLength(6)
+    expect(screen.getAllByLabelText(/世应$/)).toHaveLength(6)
+    expect(screen.queryByLabelText('第1爻爻值')).not.toBeInTheDocument()
   })
 
-  it('阴阳与动静等价输入与直接录入结果一致', async () => {
+  it('允许校正初爻伏神并恢复自动值', async () => {
     const user = userEvent.setup()
     await startManualEntry(user)
-
-    // 第1爻 = 阴 + 动 → 6
-    await user.click(screen.getByRole('button', { name: '第1爻阴' }))
-    await user.click(screen.getByRole('button', { name: '第1爻动' }))
-    expect((screen.getByLabelText('第1爻爻值') as HTMLSelectElement).value).toBe('6')
-
-    // 其余五爻 = 阳 + 静 → 7
-    for (let i = 2; i <= 6; i++) {
-      await user.click(screen.getByRole('button', { name: `第${i}爻阳` }))
-    }
-
-    expect(screen.getByText('本卦：天风姤')).toBeTruthy()
-    expect(screen.getByText('变卦：乾为天')).toBeTruthy()
-
-    // 动静切换同步爻值：第2爻改动 → 9；第1爻老阴与第2爻老阳同时翻转，变卦变为天火同人
-    await user.click(screen.getByRole('button', { name: '第2爻动' }))
-    expect((screen.getByLabelText('第2爻爻值') as HTMLSelectElement).value).toBe('9')
-    expect(screen.getByText('变卦：天火同人')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: '编辑初爻伏神' }))
+    await user.selectOptions(screen.getByLabelText('初爻伏神六亲'), '父母')
+    await user.selectOptions(screen.getByLabelText('初爻伏神地支'), '亥')
+    expect(screen.getByText('人工校正')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '恢复初爻自动值' }))
+    expect(screen.queryByText('人工校正')).not.toBeInTheDocument()
   })
 
-  it('专业字段默认折叠，展开后可覆盖起卦时间与六神', async () => {
-    const user = userEvent.setup()
-    const onCaseCreated = vi.fn()
-    render(<ManualPage onCaseCreated={onCaseCreated} />)
-
-    await user.type(screen.getByLabelText('你的问题'), '考试能否通过')
-    await user.selectOptions(screen.getByLabelText('问题类别'), 'study')
-    await user.click(screen.getByRole('button', { name: '下一步' }))
-
-    expect(screen.queryByLabelText('起卦时间')).toBeNull()
-    await user.click(screen.getByRole('button', { name: '展开专业编辑' }))
-    expect(screen.getByLabelText('起卦时间')).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText('起卦时间'), {
-      target: { value: '2026-08-28T12:00' },
-    })
-    await user.selectOptions(screen.getByLabelText('第1爻六神覆盖'), '玄武')
-
-    const values = ['6', '7', '7', '7', '7', '7']
-    for (let i = 0; i < 6; i++) {
-      await user.selectOptions(screen.getByLabelText(`第${i + 1}爻爻值`), values[i])
-    }
-
-    await user.click(screen.getByRole('button', { name: '生成正式结果' }))
-    expect(onCaseCreated).toHaveBeenCalledTimes(1)
-    const result = onCaseCreated.mock.calls[0][0]
-    expect(result.method).toBe('manual')
-    expect(result.chart.original.lines[0].liushen).toBe('玄武')
-    expect(result.chart.original.lines[0].overriddenFields).toContain('liushen')
-    expect(result.chart.sizhu.day).toBe('甲戌')
-  })
-
-  it('输入不完整时允许保存草稿，但阻止生成正式结果并指出缺失字段', async () => {
+  it('标记上爻动时实时展示变卦，并且保存反馈就地出现', async () => {
     const user = userEvent.setup()
     await startManualEntry(user)
-
-    for (let i = 0; i < 4; i++) {
-      await user.selectOptions(screen.getByLabelText(`第${i + 1}爻爻值`), '7')
-    }
-
-    expect(screen.getByText('第 5、6 爻未填，暂不能生成正式结果')).toBeTruthy()
-    const submit = screen.getByRole('button', { name: '生成正式结果' }) as HTMLButtonElement
-    expect(submit.disabled).toBe(true)
-
+    await user.type(screen.getByRole('combobox', { name: '搜索卦名' }), '泰')
+    await user.click(screen.getByRole('option', { name: '地天泰' }))
+    await user.click(screen.getByRole('button', { name: '上爻动' }))
+    expect(screen.getByText(/变卦：/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '保存草稿' }))
-    expect(draftStore.load()?.rawValues).toEqual([7, 7, 7, 7])
+    expect(screen.getByText('草稿已保存')).toBeInTheDocument()
+  })
+
+  it('生成正式结果返回完整手动卦例，并保留可恢复草稿', async () => {
+    const user = userEvent.setup()
+    const onCaseCreated = vi.fn<(value: DivinationCase) => void>()
+    render(<ManualPage onCaseCreated={onCaseCreated} />)
+    await user.type(screen.getByLabelText('你的问题'), '这次合作是否适合推进？')
+    await user.selectOptions(screen.getByLabelText('问题类别'), 'career')
+    await user.click(screen.getByRole('button', { name: '下一步' }))
+    await user.type(screen.getByRole('combobox', { name: '搜索卦名' }), '泰')
+    await user.click(screen.getByRole('option', { name: '地天泰' }))
+    await user.click(screen.getByRole('button', { name: '生成正式结果' }))
+
+    expect(onCaseCreated).toHaveBeenCalledOnce()
+    expect(onCaseCreated.mock.calls[0][0].method).toBe('manual')
+    expect(onCaseCreated.mock.calls[0][0].chart?.original.name).toBe('地天泰')
+    expect(manualDraftStore.load()?.selectedHexagramName).toBe('地天泰')
   })
 })

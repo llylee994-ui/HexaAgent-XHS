@@ -31,7 +31,9 @@ for (const viewport of VIEWPORTS) {
     await page.getByLabel('你的问题').fill('布局检查')
     await page.getByLabel('问题类别').selectOption('other')
     await page.getByRole('button', { name: '下一步' }).click()
-    await expect(page.getByLabel('第1爻爻值')).toBeVisible()
+    await page.getByRole('combobox', { name: '搜索卦名' }).fill('泰')
+    await page.getByRole('option', { name: '地天泰' }).click()
+    await expect(page.getByText('本卦：地天泰')).toBeVisible()
     await checkNoOverflow()
 
     // 历史页

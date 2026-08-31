@@ -33,6 +33,7 @@ export interface ManualEditorController {
   setQuestion(question: string, category: QuestionCategory | '', note: string): void
   setCastAt(iso: string): void
   setSizhu(sizhu: { year: string; month: string; day: string; hour: string }): void
+  useCalculatedSizhu(): void
   toggleFushen(position: LinePosition): void
   openFushen: readonly LinePosition[]
   discardDraft(): void
@@ -196,6 +197,15 @@ export function useManualEditor(): ManualEditorController {
     setStatus('corrected')
   }, [])
 
+  const useCalculatedSizhu = useCallback(() => {
+    setState((previous) => {
+      const overrides = { ...previous.overrides }
+      delete overrides.sizhu
+      return { ...previous, overrides }
+    })
+    setStatus('auto-filled')
+  }, [])
+
   const toggleFushen = useCallback((position: LinePosition) => {
     setOpenFushen((previous) => previous.includes(position) ? previous.filter((item) => item !== position) : [...previous, position])
   }, [])
@@ -223,6 +233,7 @@ export function useManualEditor(): ManualEditorController {
     setQuestion,
     setCastAt,
     setSizhu,
+    useCalculatedSizhu,
     toggleFushen,
     openFushen,
     discardDraft,

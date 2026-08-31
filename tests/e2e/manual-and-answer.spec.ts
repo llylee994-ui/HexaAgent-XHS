@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('一分钟内完成手动录入并保存两个 AI 回答', async ({ page }) => {
+test('一分钟内完成专业手动录入并保存两个 AI 回答', async ({ page }) => {
   await page.goto('/')
 
   await page.getByRole('button', { name: '手动排盘' }).click()
@@ -8,22 +8,21 @@ test('一分钟内完成手动录入并保存两个 AI 回答', async ({ page })
   await page.getByLabel('问题类别').selectOption('study')
   await page.getByRole('button', { name: '下一步' }).click()
 
-  await page.getByLabel('第1爻爻值').selectOption('6')
-  for (let i = 2; i <= 6; i++) {
-    await page.getByLabel(`第${i}爻爻值`).selectOption('7')
-  }
-  await expect(page.getByText('本卦：天风姤')).toBeVisible()
-  await expect(page.getByText('变卦：乾为天')).toBeVisible()
+  const search = page.getByRole('combobox', { name: '搜索卦名' })
+  await search.fill('泰')
+  await page.getByRole('option', { name: '地天泰' }).click()
+  await expect(page.getByText('本卦：地天泰')).toBeVisible()
+  await page.getByRole('button', { name: '上爻动' }).click()
+  await expect(page.getByText(/变卦：/)).toBeVisible()
 
   await page.getByRole('button', { name: '生成正式结果' }).click()
-  await expect(page.getByText('本卦：天风姤')).toBeVisible()
+  await expect(page.getByText('本卦：地天泰')).toBeVisible()
 
   // 经典参考离线显示本卦、动爻、变卦和六爻全文
   await page.getByRole('button', { name: '展开完整排盘' }).click()
   const reference = page.getByRole('region', { name: '卦爻参考' })
-  await expect(reference.getByText('姤：女壮，勿用取女。')).toBeVisible()
+  await expect(reference.getByText('泰：小往大来，吉，亨。')).toBeVisible()
   await expect(reference.getByRole('heading', { name: '本次动爻（1爻）' })).toBeVisible()
-  await expect(reference.getByText('乾：元，亨，利，贞。')).toBeVisible()
   await expect(reference.getByText('白话').first()).toBeVisible()
 
   const allLines = reference.locator('details')

@@ -13,11 +13,13 @@
 }
 
 html {
+  width: 100%;
   min-width: 320px;
   background: var(--paper);
 }
 
 body {
+  width: 100%;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
@@ -40,12 +42,18 @@ button {
 
 .app-shell {
   display: grid;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   padding: calc(32px + var(--safe-top))
     calc(20px + var(--safe-right))
     calc(32px + var(--safe-bottom))
     calc(20px + var(--safe-left));
   place-items: center;
+}
+
+.app-shell > * {
+  min-width: 0;
 }
 
 .welcome-card {
@@ -85,8 +93,44 @@ h1 {
 /* ── 页面骨架 ─────────────────────────────── */
 .page {
   width: min(100%, 460px);
+  min-width: 0;
   display: grid;
   gap: 16px;
+}
+
+.page-frame {
+  width: min(100%, 460px);
+  min-width: 0;
+}
+
+.page-frame__topbar {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) 1fr minmax(72px, auto);
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  margin-bottom: 12px;
+}
+
+.page-frame__title {
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-frame__status {
+  color: var(--cinnabar);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.page-frame__spacer {
+  min-width: 44px;
+}
+
+.page-frame__body > .page {
+  width: 100%;
 }
 
 .page__title {
@@ -109,6 +153,7 @@ h1 {
 
 .page__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -143,6 +188,7 @@ h1 {
 /* ── 表单 ────────────────────────────────── */
 .field {
   display: grid;
+  min-width: 0;
   gap: 6px;
 }
 
@@ -157,7 +203,10 @@ h1 {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
+  width: 100%;
+  min-width: 0;
   min-height: var(--tap-size);
   padding: 8px 10px;
   border: 1px solid var(--line-strong);
@@ -168,8 +217,6 @@ h1 {
 .question-step,
 .method-step,
 .coin-stage,
-.quick-entry,
-.professional-editor,
 .review-panel,
 .home-entries,
 .home-recent {
@@ -317,33 +364,177 @@ button.coin {
   font-weight: 600;
 }
 
-/* ── 快速录入 ─────────────────────────────── */
-.quick-entry__row {
+/* ── 专业手动排盘 ────────────────────────── */
+.manual-page {
+  gap: 14px;
+}
+
+.manual-section {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 252, 246, 0.76);
+}
+
+.manual-section__heading {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sizhu-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.quick-entry__label {
-  min-width: 48px;
+.manual-derived-note {
+  margin: 0;
   color: var(--ink-muted);
   font-size: 0.85rem;
 }
 
-.quick-entry__toggles {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
+.hexagram-search {
+  position: relative;
 }
 
-.quick-entry__row select {
-  min-width: 96px;
+.hexagram-search__menu {
+  position: absolute;
+  z-index: 2;
+  width: 100%;
+  margin-top: -4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: var(--paper);
+  box-shadow: var(--shadow-soft);
+}
+
+.hexagram-search__count {
+  margin: 0 0 6px;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.hexagram-search__options {
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.hexagram-search__option {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  text-align: left;
+}
+
+.hexagram-search__option:hover,
+.hexagram-search__option:focus-visible {
+  background: var(--paper-deep);
+}
+
+.yao-editor__list {
+  display: grid;
+  gap: 10px;
+}
+
+.yao-editor-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.yao-editor-row--changing {
+  border-color: var(--cinnabar);
+}
+
+.yao-editor-row__primary,
+.yao-editor-row__secondary,
+.yao-editor-row__fushen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.yao-editor-row__primary select,
+.yao-editor-row__secondary select,
+.yao-editor-row__fushen select {
   min-height: 36px;
-  padding: 4px 8px;
+  min-width: 0;
+  padding: 4px 6px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-button);
   background: #fff;
+}
+
+.yao-editor-row__position {
+  min-width: 36px;
+  color: var(--cinnabar);
+  font-weight: 700;
+}
+
+.yao-editor-row__primary > .yao-line {
+  flex: 0 0 54px;
+  margin: 0 2px;
+}
+
+.yao-editor-row__type-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.yao-editor-row__secondary label,
+.yao-editor-row__fushen label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.yao-editor-row__fushen {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.manual-correction {
+  color: var(--cinnabar);
+  font-size: 0.78rem;
+}
+
+.manual-validation {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--cinnabar);
+  border-radius: var(--radius-button);
+  color: var(--cinnabar-dark);
+}
+
+.manual-validation p,
+.manual-validation ul {
+  margin: 0;
+}
+
+.manual-validation ul {
+  padding-left: 20px;
 }
 
 /* ── 确认对话框 ───────────────────────────── */
