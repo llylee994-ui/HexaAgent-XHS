@@ -27,12 +27,7 @@ export async function prepareXhsBuild(root) {
     throw new Error('Module entry must stay within the build root')
   }
 
-  const bundle = await readFile(entryPath, 'utf8')
-  const sanitizedBundle = bundle.replaceAll('navigator.connection', 'undefined')
   const preparedHtml = html.replace(entry[0], `<script defer src="${src}"></script>`)
-  if (sanitizedBundle !== bundle) {
-    await writeFile(entryPath, sanitizedBundle)
-  }
   await writeFile(indexPath, preparedHtml)
 
   return { entry: src }

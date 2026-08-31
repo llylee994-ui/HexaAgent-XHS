@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, posix, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 
 const ALLOWED_EXTENSIONS = new Set([
   '.html',
@@ -145,12 +146,56 @@ function scanContent(root, file, content, violations) {
   }
 
   if (extname(file).toLowerCase() === '.js') {
-    const moduleSyntax = content.match(
-      /\bimport\.meta\b|\bimport\s*\(|(?:^|[;{}]\s*)(?:import|export)\s+(?:[({*]|[A-Za-z_$])/m,
-    )
-    if (moduleSyntax) {
-      addViolation(violations, root, file, 'module-syntax', moduleSyntax[0])
+    scanJavaScriptSyntax(root, file, content, violations)
+  }
+}
+
+function scanJavaScriptSyntax(root, file, content, violations) {
+  const source = ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS)
+  let moduleSyntax
+  let topLevelAwait
+
+  function visit(node, functionDepth) {
+    if (
+      !moduleSyntax &&
+      (ts.isImportDeclaration(node) ||
+        ts.isImportEqualsDeclaration(node) ||
+        ts.isExportDeclaration(node) ||
+        ts.isExportAssignment(node) ||
+        (ts.canHaveModifiers(node) &&
+          ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) ||
+        (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) ||
+        (ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword))
+    ) {
+      moduleSyntax = node.getText(source).slice(0, 120)
     }
+    if (!topLevelAwait && functionDepth === 0 && ts.isAwaitExpression(node)) {
+      topLevelAwait = node.getText(source).slice(0, 120)
+    }
+    if (
+      !topLevelAwait &&
+      functionDepth === 0 &&
+      ts.isForOfStatement(node) &&
+      node.awaitModifier
+    ) {
+      topLevelAwait = node.getText(source).slice(0, 120)
+    }
+
+    const childDepth = ts.isFunctionLike(node) ? functionDepth + 1 : functionDepth
+    ts.forEachChild(node, (child) => visit(child, childDepth))
+  }
+
+  visit(source, 0)
+  if (moduleSyntax) addViolation(violations, root, file, 'module-syntax', moduleSyntax)
+  if (topLevelAwait) addViolation(violations, root, file, 'top-level-await', topLevelAwait)
+  if (source.parseDiagnostics.length > 0) {
+    addViolation(
+      violations,
+      root,
+      file,
+      'javascript-syntax',
+      ts.flattenDiagnosticMessageText(source.parseDiagnostics[0].messageText, ' '),
+    )
   }
 }
 
@@ -190,13 +235,29 @@ function scanHtmlContract(root, file, content, violations) {
     addViolation(violations, root, file, 'invalid-charset', 'charset=UTF-8')
   }
 
-  const viewport = content.match(
-    /<meta\b[^>]*\bname\s*=\s*["']viewport["'][^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*>/i,
-  )?.[1]
+  const viewport = [...content.matchAll(/<meta\b([^>]*)>/gi)]
+    .map((match) => parseAttributes(match[1]))
+    .find((attributes) => attributes.get('name')?.toLowerCase() === 'viewport')
+    ?.get('content')
   const requiredViewportValues = ['width=device-width', 'initial-scale=1.0', 'viewport-fit=cover']
-  if (!viewport || requiredViewportValues.some((value) => !viewport.includes(value))) {
+  const viewportValues = new Set(
+    (viewport ?? '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase()),
+  )
+  if (!viewport || requiredViewportValues.some((value) => !viewportValues.has(value))) {
     addViolation(violations, root, file, 'invalid-viewport', viewport ?? 'missing viewport')
   }
+}
+
+function parseAttributes(attributes) {
+  const result = new Map()
+  const pattern = /(?:^|\s)([\w:-]+)\s*=\s*(["'])(.*?)\2/g
+  let match
+  while ((match = pattern.exec(attributes)) !== null) {
+    result.set(match[1].toLowerCase(), match[3])
+  }
+  return result
 }
 
 function normalizeResourcePath(buildFile, resource) {
@@ -238,21 +299,57 @@ function validateResource(root, file, resource, fileSet, violations, options = {
 }
 
 function scanHtmlResources(root, file, content, fileSet, violations) {
-  const elementPattern = /<(script|link|img|audio|video|source)\b([^>]*)>/gi
+  const elementPattern = /<([a-z][\w:-]*)\b([^>]*)>/gi
   let elementMatch
 
   while ((elementMatch = elementPattern.exec(content)) !== null) {
     const tag = elementMatch[1].toLowerCase()
-    const attribute = tag === 'link' ? 'href' : 'src'
-    const resource = elementMatch[2].match(
-      new RegExp(`\\b${attribute}\\s*=\\s*["']([^"']+)["']`, 'i'),
-    )?.[1]
-    if (resource) {
+    const attributes = parseAttributes(elementMatch[2])
+    for (const attribute of ['src', 'href', 'poster', 'xlink:href']) {
+      const resource = attributes.get(attribute)
+      if (!resource) continue
       validateResource(root, file, resource, fileSet, violations, {
-        allowMemory: tag === 'img',
+        allowMemory: ['img', 'input', 'image', 'use'].includes(tag),
       })
     }
+
+    const srcset = attributes.get('srcset')
+    if (srcset) {
+      for (const resource of parseSrcsetUrls(srcset)) {
+        validateResource(root, file, resource, fileSet, violations, {
+          allowMemory: ['img', 'source'].includes(tag),
+        })
+      }
+    }
   }
+}
+
+function parseSrcsetUrls(srcset) {
+  const urls = []
+  let index = 0
+  while (index < srcset.length) {
+    while (index < srcset.length && /[\s,]/.test(srcset[index])) index += 1
+    if (index >= srcset.length) break
+
+    const start = index
+    const isDataUrl = srcset.slice(index).toLowerCase().startsWith('data:')
+    while (
+      index < srcset.length &&
+      !/\s/.test(srcset[index]) &&
+      (isDataUrl || srcset[index] !== ',')
+    ) {
+      index += 1
+    }
+    let url = srcset.slice(start, index)
+    const trailingSeparator = isDataUrl && /,+$/.test(url)
+    if (trailingSeparator) url = url.replace(/,+$/, '')
+    if (url) urls.push(url)
+
+    if (trailingSeparator) continue
+    while (index < srcset.length && srcset[index] !== ',') index += 1
+    if (index < srcset.length) index += 1
+  }
+  return urls
 }
 
 function scanCssResources(root, file, content, fileSet, violations) {
@@ -297,6 +394,8 @@ export async function scanBuild(rootInput) {
 
     if (extension === '.html') {
       scanHtmlContract(root, file, content, violations)
+      scanHtmlResources(root, file, content, fileSet, violations)
+    } else if (extension === '.svg') {
       scanHtmlResources(root, file, content, fileSet, violations)
     } else if (extension === '.css') {
       scanCssResources(root, file, content, fileSet, violations)

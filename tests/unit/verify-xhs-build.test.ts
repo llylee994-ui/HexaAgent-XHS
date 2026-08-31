@@ -121,7 +121,11 @@ describe('scanBuild', () => {
     ['network-api', 'new XMLHttpRequest()'],
     ['module-syntax', 'export const value = 1'],
     ['module-syntax', 'import value from "./value.js"'],
+    ['module-syntax', 'import"./value.js"'],
     ['module-syntax', 'import("./value.js")'],
+    ['module-syntax', 'export/* comment */{ value }'],
+    ['top-level-await', 'await Promise.resolve()'],
+    ['top-level-await', 'for await (const value of values) { console.log(value) }'],
     ['clipboard', 'navigator.clipboard.writeText("x")'],
     ['clipboard', 'document.execCommand("copy")'],
     ['geolocation', 'navigator.geolocation.getCurrentPosition(ok)'],
@@ -161,5 +165,55 @@ describe('scanBuild', () => {
     )
 
     expect(violations).toEqual([])
+  })
+
+  it('validates srcset, poster, input, track, and SVG resource attributes', async () => {
+    const root = await makeRoot()
+    await writeValidIndex(
+      root,
+      [
+        '<img srcset="./missing-a.png 1x, /missing-b.png 2x">',
+        '<video poster="./missing-poster.png"></video>',
+        '<input type="image" src="./missing-input.png">',
+        '<track src="./missing-track.vtt">',
+        '<svg><use href="./missing-symbol.svg#mark"></use></svg>',
+      ].join(''),
+    )
+
+    const rules = (await scanBuild(root)).map(({ rule }) => rule)
+    expect(rules).toContain('absolute-resource-path')
+    expect(rules.filter((rule) => rule === 'missing-resource')).toHaveLength(6)
+  })
+
+  it('continues validating srcset candidates after an inline data image', async () => {
+    const root = await makeRoot()
+    await writeValidIndex(
+      root,
+      '<img srcset="data:image/png;base64,iVBORw0KGgo= 1x, /missing.png 2x">',
+    )
+    const violations = await scanBuild(root)
+
+    expect(violations).toContainEqual(
+      expect.objectContaining({ rule: 'absolute-resource-path', match: '/missing.png' }),
+    )
+    expect(violations).toContainEqual(
+      expect.objectContaining({ rule: 'missing-resource', match: '/missing.png' }),
+    )
+  })
+
+  it('continues after a data srcset candidate without a descriptor', async () => {
+    const root = await makeRoot()
+    await writeValidIndex(
+      root,
+      '<img srcset="data:image/png;base64,iVBORw0KGgo=, /missing.png 2x">',
+    )
+    const violations = await scanBuild(root)
+
+    expect(violations).toContainEqual(
+      expect.objectContaining({ rule: 'absolute-resource-path', match: '/missing.png' }),
+    )
+    expect(violations).toContainEqual(
+      expect.objectContaining({ rule: 'missing-resource', match: '/missing.png' }),
+    )
   })
 })

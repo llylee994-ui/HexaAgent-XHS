@@ -42,17 +42,17 @@ describe('prepareXhsBuild', () => {
     await expect(prepareXhsBuild(root)).rejects.toThrow(/\.\/ relative path/i)
   })
 
-  it('removes React DOM navigator.connection capability probes from the classic bundle', async () => {
+  it('does not textually rewrite JavaScript strings or member expressions', async () => {
     const root = await makeBuild('<script type="module" src="./assets/app.js"></script>')
+    const source =
+      'const label = "navigator.connection"; const speed = navigator.connection?.downlink'
     await writeFile(
       join(root, 'assets', 'app.js'),
-      'const speed = navigator.connection ? navigator.connection.downlink : 5',
+      source,
     )
 
     await prepareXhsBuild(root)
 
-    await expect(readFile(join(root, 'assets', 'app.js'), 'utf8')).resolves.toBe(
-      'const speed = undefined ? undefined.downlink : 5',
-    )
+    await expect(readFile(join(root, 'assets', 'app.js'), 'utf8')).resolves.toBe(source)
   })
 })
