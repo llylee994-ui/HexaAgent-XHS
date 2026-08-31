@@ -1,5 +1,7 @@
 import type { LinePosition, RawYaoValue, YinYang } from '../domain/types'
 import type { ReactNode } from 'react'
+export { PageFrame } from './PageFrame'
+export type { PageFrameProps } from './PageFrame'
 
 export interface CoinProps {
   face: 0 | 1

@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
-import { ConfirmDialog } from '../../components'
+import { ConfirmDialog, PageFrame } from '../../components'
+import type { HistoryViewState, PageFrameBinding } from '../../app/navigation'
+import { DETACHED_FRAME } from '../../app/navigation'
 import { createCaseRepository, type CaseEntry, type CaseRepository } from '../../storage/case-db'
 import { StorageFullError } from '../../storage/errors'
 import { STATUS_LABEL } from './status'
 
 export interface HistoryPageProps {
   repository?: CaseRepository
+  initialQuery?: string
+  initialScrollY?: number
+  onViewStateChange?(state: HistoryViewState): void
   onView(caseValue: DivinationCase): void
   onBack(): void
+  frame?: PageFrameBinding
 }
 
 function HistoryCard({
@@ -61,11 +67,18 @@ function ReadonlyCard({ raw, reason }: { raw: unknown; reason: string }) {
 }
 
 /** 卦例记录：时间线卡片 + 搜索 + 删除确认 + 修改副本；只读记录与存储满有明确提示 */
-export function HistoryPage({ repository: injectedRepository, onView, onBack }: HistoryPageProps) {
+export function HistoryPage({
+  repository: injectedRepository,
+  initialQuery = '',
+  initialScrollY = 0,
+  onViewStateChange,
+  onView,
+  frame = DETACHED_FRAME,
+}: HistoryPageProps) {
   // 仓库实例必须稳定，否则每次渲染都会触发重新加载并覆盖搜索结果
   const repository = useMemo(() => injectedRepository ?? createCaseRepository(), [injectedRepository])
   const [entries, setEntries] = useState<CaseEntry[]>([])
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DivinationCase | null>(null)
 
@@ -76,6 +89,23 @@ export function HistoryPage({ repository: injectedRepository, onView, onBack }: 
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    onViewStateChange?.({ query, scrollY: window.scrollY })
+  }, [onViewStateChange, query])
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      try {
+        if (!/jsdom/i.test(window.navigator.userAgent)) {
+          window.scrollTo({ top: initialScrollY, left: 0, behavior: 'auto' })
+        }
+      } catch {
+        // jsdom and older containers may not implement scrollTo options.
+      }
+    })
+    return () => window.cancelAnimationFrame(frameId)
+  }, [initialScrollY])
 
   const runSearch = async () => {
     const normalized = query.trim()
@@ -117,9 +147,14 @@ export function HistoryPage({ repository: injectedRepository, onView, onBack }: 
     }
   }
 
+  const viewCase = (value: DivinationCase) => {
+    onViewStateChange?.({ query, scrollY: window.scrollY })
+    onView(value)
+  }
+
   return (
-    <section className="page">
-      <h1 className="page__title">卦例记录</h1>
+    <PageFrame title="卦例记录" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+      <section className="page">
 
       <div className="search-bar">
         <input
@@ -147,7 +182,7 @@ export function HistoryPage({ repository: injectedRepository, onView, onBack }: 
               <HistoryCard
                 key={entry.value.id}
                 value={entry.value}
-                onView={onView}
+                onView={viewCase}
                 onDuplicate={duplicate}
                 onDelete={setDeleteTarget}
               />
@@ -158,10 +193,6 @@ export function HistoryPage({ repository: injectedRepository, onView, onBack }: 
         </ul>
       )}
 
-      <button type="button" className="btn" onClick={onBack}>
-        返回首页
-      </button>
-
       <ConfirmDialog
         open={deleteTarget !== null}
         title="删除卦例"
@@ -170,6 +201,7 @@ export function HistoryPage({ repository: injectedRepository, onView, onBack }: 
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </section>
+      </section>
+    </PageFrame>
   )
 }

@@ -41,7 +41,7 @@ export function HomePage({ onNavigate, onViewCase }: HomePageProps) {
         </button>
         <button type="button" className="entry-card" aria-label="手动排盘" onClick={() => onNavigate('manual')}>
           <span className="entry-card__title">手动排盘</span>
-          <span className="entry-card__desc">已有卦象，直接录入 6/7/8/9</span>
+          <span className="entry-card__desc">已有卦象，自动排盘后可校正</span>
         </button>
         <button type="button" className="entry-card" aria-label="卦例记录" onClick={() => onNavigate('history')}>
           <span className="entry-card__title">卦例记录</span>

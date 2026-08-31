@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DivinationCase } from '../domain/types'
-import type { Route } from './navigation'
+import { useNavigationStack } from './use-navigation-stack'
 import { createCaseRepository } from '../storage/case-db'
 import { HomePage } from '../features/home/HomePage'
 import { CastPage } from '../features/cast/CastPage'
@@ -11,12 +11,30 @@ import { HistoryPage } from '../features/history/HistoryPage'
 const repository = createCaseRepository()
 
 export default function App() {
-  const [route, setRoute] = useState<Route>('home')
+  const navigation = useNavigationStack()
+  const route = navigation.current.route
   const [activeCase, setActiveCase] = useState<DivinationCase | null>(null)
+  const { updateCurrent } = navigation
+
+  const frame = useMemo(
+    () => ({
+      canGoBack: navigation.canGoBack,
+      direction: navigation.direction,
+      onBack: navigation.back,
+    }),
+    [navigation.canGoBack, navigation.direction, navigation.back],
+  )
+
+  const handleHistoryViewStateChange = useCallback(
+    (state: { query: string; scrollY: number }) => {
+      updateCurrent({ history: state, scrollY: state.scrollY })
+    },
+    [updateCurrent],
+  )
 
   const handleCaseCreated = (caseValue: DivinationCase) => {
     setActiveCase(caseValue)
-    setRoute('result')
+    navigation.push({ route: 'result', activeCaseId: caseValue.id, scrollY: 0 })
     void repository.put(caseValue)
   }
 
@@ -38,29 +56,36 @@ export default function App() {
     <main className="app-shell">
       {route === 'home' ? (
         <HomePage
-          onNavigate={setRoute}
+          onNavigate={(nextRoute) => navigation.push({ route: nextRoute, scrollY: 0 })}
           onViewCase={(caseValue) => {
             setActiveCase(caseValue)
-            setRoute('result')
+            navigation.push({ route: 'result', activeCaseId: caseValue.id, scrollY: 0 })
           }}
         />
       ) : null}
-      {route === 'cast' ? <CastPage onCaseCreated={handleCaseCreated} /> : null}
-      {route === 'manual' ? <ManualPage onCaseCreated={handleCaseCreated} /> : null}
+      {route === 'cast' ? <CastPage onCaseCreated={handleCaseCreated} frame={frame} /> : null}
+      {route === 'manual' ? <ManualPage onCaseCreated={handleCaseCreated} frame={frame} /> : null}
       {route === 'result' && activeCase ? (
         <ResultPage
           caseValue={activeCase}
           onChange={handleCaseChanged}
-          onBack={() => setRoute('home')}
+          onBack={navigation.back}
+          onHome={navigation.resetToHome}
+          frame={frame}
         />
       ) : null}
       {route === 'history' ? (
         <HistoryPage
+          initialQuery={navigation.current.history?.query ?? ''}
+          initialScrollY={navigation.current.history?.scrollY ?? 0}
+          onViewStateChange={handleHistoryViewStateChange}
           onView={(caseValue) => {
             setActiveCase(caseValue)
-            setRoute('result')
+            navigation.updateCurrent({ history: { query: navigation.current.history?.query ?? '', scrollY: window.scrollY }, scrollY: window.scrollY })
+            navigation.push({ route: 'result', activeCaseId: caseValue.id, scrollY: 0 })
           }}
-          onBack={() => setRoute('home')}
+          onBack={navigation.back}
+          frame={frame}
         />
       ) : null}
     </main>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
 import { useCaseSession } from '../../app/use-case-session'
-import { ConfirmDialog, ProgressHeader, YaoStack } from '../../components'
+import type { PageFrameBinding } from '../../app/navigation'
+import { DETACHED_FRAME } from '../../app/navigation'
+import { ConfirmDialog, PageFrame, ProgressHeader, YaoStack } from '../../components'
 import { buildHexagram } from '../../engines/hexagram/engine'
 import { QuestionStep } from './QuestionStep'
 import { MethodStep } from './MethodStep'
@@ -10,44 +12,49 @@ import { PhysicalCoinStage } from './PhysicalCoinStage'
 
 export interface CastPageProps {
   onCaseCreated(caseValue: DivinationCase): void
+  frame?: PageFrameBinding
 }
 
 /** 现场摇卦页：问题 → 方式 → 投币 → 结果确认 */
-export function CastPage({ onCaseCreated }: CastPageProps) {
+export function CastPage({ onCaseCreated, frame = DETACHED_FRAME }: CastPageProps) {
   const session = useCaseSession()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const stepTitle = session.step === 'method' ? '选择起卦方式' : '现场摇卦'
 
   if (session.step === 'question') {
     return (
-      <section className="page">
-        <h1 className="page__title">现场摇卦</h1>
-        <QuestionStep
-          initialQuestion={session.question}
-          initialCategory={session.category}
-          initialNote={session.note}
-          onSubmit={(input) => {
-            session.setQuestion(input.question, input.category, input.note)
-            session.startCastFlow()
-          }}
-        />
-      </section>
+      <PageFrame title={stepTitle} canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+        <section className="page">
+          <QuestionStep
+            initialQuestion={session.question}
+            initialCategory={session.category}
+            initialNote={session.note}
+            onSubmit={(input) => {
+              session.setQuestion(input.question, input.category, input.note)
+              session.startCastFlow()
+            }}
+          />
+        </section>
+      </PageFrame>
     )
   }
 
   if (session.step === 'method') {
     return (
-      <section className="page">
-        <h1 className="page__title">选择起卦方式</h1>
-        <MethodStep onSelect={session.chooseMethod} />
-      </section>
+      <PageFrame title={stepTitle} canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+        <section className="page">
+          <MethodStep onSelect={session.chooseMethod} />
+        </section>
+      </PageFrame>
     )
   }
 
   const preview = session.isComplete ? buildHexagram(session.rawValues) : null
 
   return (
-    <section className="page">
-      <ProgressHeader question={session.question} completedCount={session.rawValues.length} />
+    <PageFrame title={stepTitle} canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+      <section className="page">
+        <ProgressHeader question={session.question} completedCount={session.rawValues.length} />
 
       {session.step === 'casting' ? (
         session.method === 'physical-coins' ? (
@@ -102,6 +109,7 @@ export function CastPage({ onCaseCreated }: CastPageProps) {
         }}
         onCancel={() => setConfirmOpen(false)}
       />
-    </section>
+      </section>
+    </PageFrame>
   )
 }

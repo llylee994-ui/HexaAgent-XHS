@@ -8,16 +8,21 @@ import { ReferenceText } from './ReferenceText'
 import { PromptPanel } from './PromptPanel'
 import { AnswerPanel } from './AnswerPanel'
 import { SavePanel } from './SavePanel'
+import { PageFrame } from '../../components'
+import type { PageFrameBinding } from '../../app/navigation'
+import { DETACHED_FRAME } from '../../app/navigation'
 
 export interface ResultPageProps {
   caseValue: DivinationCase
   /** 任何保存动作（提示词、回答、卦例信息）都通过此回调交回父级持久化 */
   onChange(next: DivinationCase): void
   onBack(): void
+  onHome?(): void
+  frame?: PageFrameBinding
 }
 
 /** 结果页：主卡 → 关键观察 → 完整排盘 → 卦爻参考 → 问 AI → 回答回填 → 保存 */
-export function ResultPage({ caseValue, onChange, onBack }: ResultPageProps) {
+export function ResultPage({ caseValue, onChange, onBack, onHome = onBack, frame = DETACHED_FRAME }: ResultPageProps) {
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(
     caseValue.prompts.at(-1)?.id ?? null,
   )
@@ -53,15 +58,16 @@ export function ResultPage({ caseValue, onChange, onBack }: ResultPageProps) {
 
   if (!caseValue.chart) {
     return (
-      <section className="page">
-        <h1 className="page__title">结果</h1>
-        <p className="hint">排盘尚未完成。</p>
-        <button type="button" className="btn" onClick={onBack}>返回</button>
-      </section>
+      <PageFrame title="结果" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+        <section className="page">
+          <p className="hint">排盘尚未完成。</p>
+        </section>
+      </PageFrame>
     )
   }
 
   return (
+    <PageFrame title="排盘结果" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
     <section className="page">
       {caseValue.answers.length === 0 ? (
         <p className="hint hint--warning result-page__reminder">这条卦例还没有保存 AI 解读</p>
@@ -95,7 +101,8 @@ export function ResultPage({ caseValue, onChange, onBack }: ResultPageProps) {
       />
       <SavePanel caseValue={caseValue} onChange={onChange} />
 
-      <button type="button" className="btn" onClick={onBack}>返回首页</button>
+      <button type="button" className="btn" onClick={onHome}>返回首页</button>
     </section>
+    </PageFrame>
   )
 }

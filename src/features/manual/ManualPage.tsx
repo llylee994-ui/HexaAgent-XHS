@@ -6,20 +6,24 @@ import { buildHexagram } from '../../engines/hexagram/engine'
 import { QuestionStep } from '../cast/QuestionStep'
 import { QuickEntry } from './QuickEntry'
 import { ProfessionalEditor } from './ProfessionalEditor'
+import type { PageFrameBinding } from '../../app/navigation'
+import { DETACHED_FRAME } from '../../app/navigation'
+import { PageFrame } from '../../components'
 
 export interface ManualPageProps {
   onCaseCreated(caseValue: DivinationCase): void
+  frame?: PageFrameBinding
 }
 
 /** 手动排盘页：问题 → 快速录入（专业字段折叠）→ 正式结果 */
-export function ManualPage({ onCaseCreated }: ManualPageProps) {
+export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPageProps) {
   const session = useCaseSession()
   const [editorOpen, setEditorOpen] = useState(false)
 
   if (session.step === 'question') {
     return (
-      <section className="page">
-        <h1 className="page__title">手动排盘</h1>
+      <PageFrame title="手动排盘" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
+        <section className="page">
         <QuestionStep
           initialQuestion={session.question}
           initialCategory={session.category}
@@ -29,7 +33,8 @@ export function ManualPage({ onCaseCreated }: ManualPageProps) {
             session.startManualFlow()
           }}
         />
-      </section>
+        </section>
+      </PageFrame>
     )
   }
 
@@ -40,6 +45,7 @@ export function ManualPage({ onCaseCreated }: ManualPageProps) {
       : null
 
   return (
+    <PageFrame title="手动排盘" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
     <section className="page">
       <ProgressHeader question={session.question} completedCount={session.rawValues.length} />
 
@@ -86,5 +92,6 @@ export function ManualPage({ onCaseCreated }: ManualPageProps) {
 
       <YaoStack rawValues={session.rawValues} />
     </section>
+    </PageFrame>
   )
 }
