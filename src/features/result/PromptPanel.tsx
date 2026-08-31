@@ -65,6 +65,7 @@ export function PromptPanel({ caseValue, selectedPromptId, onSelectPrompt, onCha
             rows={10}
             value={selected?.content ?? ''}
           />
+          <p className="hint">提示词版本：{selected?.version ?? '—'}</p>
           <button type="button" className="btn" onClick={selectAll}>
             全选内容
           </button>

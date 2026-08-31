@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createDraft } from '../../src/domain/factories'
 import type { CoinThrow, DivinationCase } from '../../src/domain/types'
@@ -164,6 +164,19 @@ describe('提示词与回答闭环', () => {
     const textarea = screen.getByLabelText('提示词内容') as HTMLTextAreaElement
     expect(textarea.selectionStart).toBe(0)
     expect(textarea.selectionEnd).toBe(textarea.value.length)
+  })
+
+  it('完整排盘只标记实际被人工校正的字段', async () => {
+    const user = userEvent.setup()
+    const chart = buildChart([6, 7, 7, 7, 7, 7], CAST_AT, { lines: { 1: { liushen: '人工六神' } } })
+    render(<ReferenceText chart={chart} />)
+    expect(screen.queryByText(/人工校正/)).toBeNull()
+    cleanup()
+
+    const { unmount } = render(<ResultPage caseValue={{ ...buildCase(), chart }} onChange={() => {}} onBack={() => {}} />)
+    await user.click(screen.getByRole('button', { name: '展开完整排盘' }))
+    expect(screen.getAllByText('初爻人工校正：六神')).toHaveLength(2)
+    unmount()
   })
 
   it('保存两个不同来源的回答互不覆盖，且关联提示词快照', async () => {

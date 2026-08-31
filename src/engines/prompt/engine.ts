@@ -4,10 +4,11 @@ import { YONGSHEN_BY_CATEGORY } from '../interpretation/categories'
 import {
   formatCategory,
   formatCoinThrows,
-  formatFigure,
+  formatReadableChart,
   formatMethod,
   formatSizhu,
 } from './formatter'
+import { buildStructuredPromptData } from './structured'
 import { PROMPT_CONSTRAINTS, PROMPT_FOOTER, PROMPT_HEADER } from './templates'
 
 function commonHeader(caseValue: DivinationCase, variant: PromptVariant): string[] {
@@ -52,14 +53,7 @@ function professionalBody(caseValue: DivinationCase): string[] {
     lines.push(`原始爻值：${caseValue.rawValues.join('、')}`)
   }
 
-  lines.push(
-    '',
-    '本卦排盘：',
-    ...formatFigure(chart.original, chart.changingLines),
-  )
-  if (chart.changed) {
-    lines.push('变卦排盘（六亲以本卦卦宫为准）：', ...formatFigure(chart.changed, []))
-  }
+  lines.push('', '人类可读排盘：', ...formatReadableChart(caseValue), '', '结构化排盘数据：', '```json', JSON.stringify(buildStructuredPromptData(caseValue), null, 2), '```')
   lines.push(
     '',
     `四柱：${formatSizhu(chart.sizhu)}`,

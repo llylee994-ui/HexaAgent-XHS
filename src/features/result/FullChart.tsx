@@ -1,6 +1,24 @@
 import type { HexagramChart } from '../../domain/types'
 import { HexagramLines } from '../../components'
 
+const OVERRIDE_LABEL: Record<string, string> = {
+  gan: '天干', zhi: '地支', liuqin: '六亲', liushen: '六神', shiYing: '世应', xunKong: '旬空', fushen: '伏神',
+}
+
+function CorrectionNotes({ lines }: { lines: HexagramChart['original']['lines'] }) {
+  const corrected = [...lines].reverse().filter((line) => (line.overriddenFields?.length ?? 0) > 0)
+  if (corrected.length === 0) return null
+  return (
+    <ul className="full-chart__corrections" aria-label="排盘人工校正">
+      {corrected.map((line) => (
+        <li key={line.position}>
+          {line.position === 1 ? '初爻' : line.position === 2 ? '二爻' : line.position === 3 ? '三爻' : line.position === 4 ? '四爻' : line.position === 5 ? '五爻' : '上爻'}人工校正：{line.overriddenFields!.map((field) => OVERRIDE_LABEL[field] ?? field).join('、')}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export interface FullChartProps {
   chart: HexagramChart
 }
@@ -16,10 +34,12 @@ export function FullChart({ chart }: FullChartProps) {
       </p>
       <h3 className="full-chart__subtitle">本卦 · {chart.original.name}（{chart.original.palace}宫{chart.original.palaceElement}）</h3>
       <HexagramLines figure={chart.original} changingLines={chart.changingLines} detailed />
+      <CorrectionNotes lines={chart.original.lines} />
       {chart.changed ? (
         <>
           <h3 className="full-chart__subtitle">变卦 · {chart.changed.name}（六亲以本卦卦宫为准）</h3>
           <HexagramLines figure={chart.changed} detailed />
+          <CorrectionNotes lines={chart.changed.lines} />
         </>
       ) : null}
     </section>
