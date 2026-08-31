@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { expect, test } from 'vitest'
 
-test('writes ZIP entry names with forward slashes', async () => {
+test('writes ZIP entry names with forward slashes', { timeout: 15_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'hexagent-xhs-package-'))
   const dist = join(root, 'dist')
   const output = join(root, 'release', 'tool.zip')

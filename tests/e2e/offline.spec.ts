@@ -56,9 +56,8 @@ test('构建产物不发起任何外部请求，离线重载后核心流程可�
   await page.getByLabel('你的问题').fill('离线排盘')
   await page.getByLabel('问题类别').selectOption('study')
   await page.getByRole('button', { name: '下一步' }).click()
-  for (let i = 1; i <= 6; i++) {
-    await page.getByLabel(`第${i}爻爻值`).selectOption('7')
-  }
+  await page.getByRole('combobox', { name: '搜索卦名' }).fill('乾')
+  await page.getByRole('option', { name: '乾为天' }).click()
   await expect(page.getByText('本卦：乾为天', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: '生成正式结果' }).click()

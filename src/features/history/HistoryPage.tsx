@@ -109,6 +109,8 @@ export function HistoryPage({
 
   const runSearch = async () => {
     const normalized = query.trim()
+    const currentState = (window.history.state ?? {}) as { wenYaoIndex?: number }
+    window.history.pushState({ wenYaoIndex: currentState.wenYaoIndex, historyView: { query, scrollY: window.scrollY } }, '')
     if (!normalized) {
       await load()
       return

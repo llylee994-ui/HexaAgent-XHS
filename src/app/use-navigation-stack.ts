@@ -13,6 +13,7 @@ export interface NavigationStack {
 
 interface BrowserState {
   wenYaoIndex?: number
+  historyView?: { query: string; scrollY: number }
 }
 
 const HOME_ENTRY: NavigationEntry = {
@@ -45,9 +46,14 @@ export function useNavigationStack(initialRoute: Route = 'home'): NavigationStac
   const depthRef = useRef(1)
 
   useEffect(() => {
-    const onPopState = () => {
+    const onPopState = (event: PopStateEvent) => {
       if (pendingInAppBacks.current > 0) {
         pendingInAppBacks.current -= 1
+        return
+      }
+      const state = event.state as BrowserState | null
+      if (state?.wenYaoIndex === depthRef.current) {
+        setDirection('back')
         return
       }
       depthRef.current = Math.max(1, depthRef.current - 1)

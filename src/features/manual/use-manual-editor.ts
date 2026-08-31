@@ -122,7 +122,7 @@ export function useManualEditor(): ManualEditorController {
       const next = { ...current, ...patch }
       const rawValues = [...previous.rawValues]
       rawValues[lineIndex(position)] = rawValueFromLine(next.type, next.changing)
-      return { ...previous, rawValues, selectedHexagramName: '' }
+      return { ...previous, rawValues }
     })
     setStatus('corrected')
   }, [])
