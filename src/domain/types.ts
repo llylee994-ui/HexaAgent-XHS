@@ -33,7 +33,7 @@ export interface Fushen {
 }
 
 /** 允许专业编辑人工覆盖的爻级字段 */
-export type OverrideField = 'gan' | 'zhi' | 'liuqin' | 'liushen' | 'shiYing' | 'xunKong'
+export type OverrideField = 'gan' | 'zhi' | 'liuqin' | 'liushen' | 'shiYing' | 'xunKong' | 'fushen'
 
 export interface YaoLine {
   position: LinePosition

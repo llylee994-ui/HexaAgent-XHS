@@ -1,6 +1,7 @@
 import type {
   HexagramChart,
   HexagramFigure,
+  Fushen,
   LinePosition,
   OverrideField,
   RawYaoValue,
@@ -23,6 +24,7 @@ export interface ChartLineOverrides {
   liushen?: string
   shiYing?: 'shi' | 'ying' | null
   xunKong?: boolean
+  fushen?: Fushen | null
 }
 
 export interface ChartOverrides {
@@ -65,6 +67,7 @@ function applyLineOverrides(
   lines: readonly YaoLine[],
   overrides: Partial<Record<LinePosition, ChartLineOverrides>> | undefined,
   context: DecorateContext,
+  allowFushen = false,
 ): YaoLine[] {
   if (!overrides) {
     return [...lines]
@@ -107,6 +110,10 @@ function applyLineOverrides(
       overridden.add('xunKong')
     } else if (override.zhi !== undefined) {
       merged.xunKong = xunKongSet.has(override.zhi)
+    }
+    if (allowFushen && override.fushen !== undefined) {
+      merged.fushen = override.fushen
+      overridden.add('fushen')
     }
 
     merged.overriddenFields = [...overridden]
@@ -152,7 +159,7 @@ export function buildChart(
 
   const original = toFigure(
     basic.original,
-    applyLineOverrides(originalLines, overrides?.lines, context),
+    applyLineOverrides(originalLines, overrides?.lines, context, true),
   )
 
   const changed = basic.changed
