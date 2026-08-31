@@ -40,6 +40,39 @@ button {
   min-height: var(--tap-size);
 }
 
+button,
+input,
+textarea,
+select {
+  transition: transform var(--motion-control) var(--ease-out),
+    box-shadow var(--motion-control) var(--ease-out),
+    border-color var(--motion-control) var(--ease-out),
+    background-color var(--motion-control) var(--ease-out),
+    opacity var(--motion-control) var(--ease-out);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--cinnabar);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+button:active,
+button[aria-pressed='true'] {
+  transform: var(--active-transform);
+}
+
+button[aria-expanded='true'] {
+  box-shadow: var(--focus-ring);
+}
+
+button:disabled {
+  transform: none;
+}
+
 .app-shell {
   display: grid;
   width: 100%;
@@ -133,6 +166,24 @@ h1 {
   width: 100%;
 }
 
+@keyframes page-enter-forward {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes page-enter-back {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.page-frame[data-direction='forward'] .page-frame__body {
+  animation: page-enter-forward var(--motion-page) var(--ease-out) both;
+}
+
+.page-frame[data-direction='back'] .page-frame__body {
+  animation: page-enter-back var(--motion-page) var(--ease-out) both;
+}
+
 .page__title {
   margin: 0;
   font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
@@ -171,6 +222,16 @@ h1 {
 .btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.btn.is-success {
+  border-color: var(--tea);
+  background: color-mix(in srgb, var(--tea) 14%, white);
+}
+
+.btn.is-error {
+  border-color: var(--cinnabar);
+  color: var(--cinnabar-dark);
 }
 
 .btn--primary {
@@ -535,6 +596,24 @@ button.coin {
 
 .manual-validation ul {
   padding-left: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .page-frame__body,
+  .page-frame[data-direction='forward'] .page-frame__body,
+  .page-frame[data-direction='back'] .page-frame__body {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /* ── 确认对话框 ───────────────────────────── */

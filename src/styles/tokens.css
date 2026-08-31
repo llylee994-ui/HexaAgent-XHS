@@ -15,4 +15,9 @@
   --tap-size: 44px;
   --radius-card: 24px;
   --shadow-soft: 0 16px 48px rgba(60, 43, 28, 0.08);
+  --motion-page: 220ms;
+  --motion-control: 140ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --focus-ring: 0 0 0 3px rgba(182, 73, 61, 0.2);
+  --active-transform: translateY(1px);
 }

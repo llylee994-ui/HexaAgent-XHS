@@ -25,7 +25,7 @@ export function PageFrame({ title, canGoBack = false, direction = 'forward', sta
         <h1 className="page-frame__title">{title}</h1>
         <span className="page-frame__status">{status ?? ''}</span>
       </header>
-      <div className="page-frame__body">{children}</div>
+      <div key={`${title}:${direction}`} className="page-frame__body">{children}</div>
     </div>
   )
 }
