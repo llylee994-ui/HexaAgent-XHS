@@ -3,7 +3,7 @@ import { CAST_TIME_ZONE, toZonedParts } from './zoned-time'
 
 /**
  * 十二"节"，按公历年内出现顺序排列：索引 0 = 小寒（丑月的界），索引 1 = 立春（年柱的界）。
- * 交节时刻取自 solar-terms-data.ts（UTC+8，与香港天文台公布值逐项核对过）。
+ * 交节时刻取自 solar-terms-data.ts（UTC+8）；其中 2019–2028 年十二节与香港天文台公布值逐项核对过。
  */
 export const JIE_NAMES = [
   '小寒', '立春', '惊蛰', '清明', '立夏', '芒种',
