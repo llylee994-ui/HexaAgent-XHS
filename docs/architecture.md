@@ -50,7 +50,7 @@ UI 层（features / components / app）
 | --- | --- | --- |
 | `schemaVersion` | 2 | 数据结构版本，迁移表按版本逐级升级（v1 → v2 补 `timeZone`） |
 | `engineVersion` | 0.2.0 | 排盘内核版本（0.2.0 起节气按交节时刻、时区固定北京时间） |
-| `promptVersion` | 2.1.0 | 提示词模板版本（2.1.0 起输出本地时间、时区与排盘规则声明） |
+| `promptVersion` | 2.1.1 | 提示词模板版本（2.1.0 起输出本地时间、时区与排盘规则声明；2.1.1 起节气来源表述与实际实现一致） |
 
 保存完整快照保证未来升级后旧卦例仍呈现当时结果。迁移失败或来自更新版本的数据以只读展示（`caseRepository.listEntries()` 返回 `readonly` 条目）。
 

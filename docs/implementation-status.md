@@ -33,9 +33,26 @@
 
 升级兼容已被测试固化（`tests/unit/case-db.test.ts`、`tests/unit/draft-store.test.ts`）：把 0.1.0 形态的记录（`schemaVersion` 1、无 `timeZone`、四柱快照来自旧近似节气）直接写进 IndexedDB，再经新版仓库读出，断言补时区、快照逐字段不变、仍可写回；读不出的记录以只读保留且原始数据不删除；现场摇卦活动草稿同样跨版本恢复。
 
-打包与交付：`release/wenyao-xhs-0.2.0.zip`（127,621 字节，SHA-256 `6fa12421…`，`index.html` 位于根目录，逐文件哈希与 `dist/` 一致）；交付记录写入 `release/release-summary.md`，已上传的 0.1.0 记录另存为 `release/release-summary-0.1.0.md`，0.1.0 的 ZIP 原样保留。`scripts/package-xhs.ps1` 改为从 `package.json` 读取版本号（不传 `-OutputPath` 时自动命名 `release/wenyao-xhs-<版本>.zip`，摘要版本号同源），此前版本号在脚本里硬编码为 0.1.0。
+打包与交付：`release/wenyao-xhs-0.2.0.zip`（129,846 字节，SHA-256 `6a5ac9f9…`，`index.html` 位于根目录，逐文件哈希与当时 `dist/` 一致）；交付记录写入 `release/release-summary.md`，已上传的 0.1.0 记录另存为 `release/release-summary-0.1.0.md`，0.1.0 的 ZIP 原样保留。`scripts/package-xhs.ps1` 改为从 `package.json` 读取版本号（不传 `-OutputPath` 时自动命名 `release/wenyao-xhs-<版本>.zip`，摘要版本号同源），此前版本号在脚本里硬编码为 0.1.0。
 
-尚未完成：真机验收（`docs/xhs-review-guide.md` 第 4 节清单，含新增的时区与节气边界两项）与小红书容器上传。
+**注意：该 ZIP 早于下述 09-11 复核修正**，源码已变化，上传前必须重新执行 `npm run build` 与 `scripts/package-xhs.ps1` 并重新核对摘要。
+
+尚未完成：真机验收（`docs/xhs-review-guide.md` 第 4 节清单，含新增的时区、节气边界与备份两项）与小红书容器上传。
+
+## 2026-09-11 发布复核修正
+
+对照设计：`docs/superpowers/specs/2026-09-11-release-review-fixes-design.md`（四处一致性问题的复核结论：全部成立）。
+
+| 修正 | 改动 |
+| --- | --- |
+| 旧版卦例时区提示 | `HistoryPage` 的卡片对 `timeZone.assumed === true` 的记录显示"旧版记录未保存时区，现按北京时间显示；原排盘结果未重新计算。"；结果页不重复显示；不重算任何旧快照 |
+| 节气来源表述 | 提示词文字（`prompt/engine`、`prompt/formatter`）与结构化 JSON（`prompt/structured`）改为"内置离线节气表（寿星万年历算法生成，覆盖 1899–2100 年；2019–2028 年的十二节与香港天文台公布值核对，误差不超过 1 分钟）"，不再声称整张表直接取自香港天文台；数据表表头与生成脚本 `scripts/generate-solar-terms.mjs` 的同一说法一并改正（数据行未变，重新生成后仅表头变化） |
+| `castStartedAt` 恢复语义 | `useCaseSession.restoreState` 改为保留草稿里的 `castStartedAt`（`?? null`），不再在恢复时清空；`castAt` 仍在第六爻完成时更新，是唯一参与四柱的时间 |
+| 发布元数据 | 本节记录的 ZIP 大小与 SHA-256 已与 `release/release-summary.md` 对齐 |
+
+`PROMPT_VERSION` 由 2.1.0 提升到 **2.1.1**：改的是写进提示词、供外部 AI 阅读的规则文案，同一版本号不应对应两段不同文字。schema 与 engine 版本未动，未改动排盘结果、ZIP 结构与节气数据。
+
+门禁：`npm test` 291 项在 `TZ=Asia/Shanghai`、`TZ=UTC`、`TZ=America/New_York` 三组环境下全部通过；`npm run lint` 0 问题；`npm run build` 扫描 `0 violations`；`npx playwright test` 18 项通过。按要求**本次未重新打包**：`release/` 中的 0.2.0 ZIP 仍是对应修正前的源码。
 
 ## 总览
 
