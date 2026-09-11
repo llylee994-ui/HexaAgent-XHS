@@ -121,6 +121,36 @@ describe('现场摇卦流程', () => {
     expect(draftStore.load()?.rawValues).toEqual([9, 9])
   })
 
+  it('恢复草稿后完成摇卦：保留最初的开始时刻，起卦时刻取第六爻完成时刻', async () => {
+    const user = userEvent.setup()
+    const onCaseCreated = vi.fn()
+    const { unmount } = render(<CastPage onCaseCreated={onCaseCreated} />)
+
+    await user.type(screen.getByLabelText('你的问题'), '跳槽顺利吗')
+    await user.selectOptions(screen.getByLabelText('问题类别'), 'career')
+    await user.click(screen.getByRole('button', { name: '下一步' }))
+    await user.click(screen.getByRole('button', { name: '模拟铜钱摇卦' }))
+    await user.click(screen.getByRole('button', { name: '摇动铜钱' }))
+    await user.click(screen.getByRole('button', { name: '摇动铜钱' }))
+
+    const startedAt = draftStore.load()?.castStartedAt
+    expect(typeof startedAt).toBe('string')
+    unmount()
+
+    render(<CastPage onCaseCreated={onCaseCreated} />)
+    for (let i = 0; i < 4; i++) {
+      await user.click(screen.getByRole('button', { name: '摇动铜钱' }))
+    }
+    await user.click(screen.getByRole('button', { name: '生成结果' }))
+
+    const result = onCaseCreated.mock.calls[0][0]
+    // 恢复过程不覆盖最初的开始时刻
+    expect(result.castStartedAt).toBe(startedAt)
+    // 得卦时刻在第六爻完成时确定，且不早于开始时刻
+    expect(Date.parse(result.castAt)).toBeGreaterThanOrEqual(Date.parse(result.castStartedAt))
+    expect(result.chart.sizhu).toBeDefined()
+  })
+
   it('生成结果回调完整卦例并清理草稿', async () => {
     const user = userEvent.setup()
     const onCaseCreated = vi.fn()

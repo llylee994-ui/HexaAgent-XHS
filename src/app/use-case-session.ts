@@ -74,7 +74,8 @@ function restoreState(): SessionState {
     category: draft.category,
     note: draft.note,
     castAt: draft.castAt,
-    castStartedAt: null,
+    // 草稿里已记录的开始时刻要保留，否则恢复后会把"恢复的那一刻"当成开始时刻
+    castStartedAt: draft.castStartedAt ?? null,
     coinThrows: draft.coinThrows,
     entries: rawValuesToEntries(draft.rawValues),
     step: 'casting',

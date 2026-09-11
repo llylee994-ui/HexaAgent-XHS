@@ -48,6 +48,25 @@ describe('generatePrompt 起卦时间与时区', () => {
     expect(content).toContain('未做真太阳时校正')
   })
 
+  it('节气来源表述与实际实现一致，不再声称直接取自香港天文台', () => {
+    const concise = generatePrompt(buildCase(), 'concise').content
+    const professional = generatePrompt(buildCase(), 'professional').content
+    for (const content of [concise, professional]) {
+      expect(content).toContain('内置离线节气表')
+      expect(content).toContain('寿星万年历算法生成')
+      expect(content).toContain('2019–2028 年的十二节与香港天文台公布值核对')
+      expect(content).not.toContain('交节时刻取香港天文台公布值')
+    }
+  })
+
+  it('提示词文字与结构化 JSON 表达同一节气来源事实', () => {
+    const professional = generatePrompt(buildCase(), 'professional').content
+    const json = JSON.parse(professional.split('```json\n')[1].split('\n```')[0])
+    expect(json.rules.solarTermSource).toContain('内置离线节气表')
+    expect(json.rules.solarTermSource).toContain('2019–2028 年的十二节与香港天文台公布值核对')
+    expect(json.rules.solarTermSource).not.toContain('香港天文台公布的二十四节气交节时刻')
+  })
+
   it('提示词中的本地时间与绝对时刻互为逆运算（两者不会各自漂移）', () => {
     const value = buildCase()
     const content = generatePrompt(value, 'professional').content

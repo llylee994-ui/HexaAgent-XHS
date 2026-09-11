@@ -7,7 +7,8 @@
  * 由 scripts/generate-solar-terms.mjs 生成（lunar-javascript，寿星万年历算法），请勿手工编辑。
  * 精度核对见 tests/unit/solar-terms.test.ts：与香港天文台《二十四節氣的日期及時間資料》
  * （香港時間 = UTC+8）2019–2028 年 12 节逐项比较，全部在 60 秒以内。
- * 数据来源：https://www.hko.gov.hk/tc/gts/astronomy/Solar_Term.htm（取数日期 2026-09-11）
+ * 数据来源：本表由上述算法生成；香港天文台公布值仅作为核对基准，不是本表的取数来源
+ *   https://www.hko.gov.hk/tc/gts/astronomy/Solar_Term.htm（取数日期 2026-09-11，核对范围 2019–2028）
  * 本表只收录十二"节"（月界），未收录十二"气"（中气）。
  * 表首多收录 1899 年，用于解析 1900 年 1 月小寒之前的时刻（需回退到上一年的大雪）。
  */

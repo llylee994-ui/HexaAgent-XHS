@@ -43,6 +43,9 @@ function HistoryCard({
         {value.chart?.original.name ?? '未排盘'} · {formatZonedDateTime(value.updatedAt, value.timeZone?.offsetMinutes)}
       </p>
       <p className="history-card__question">{value.question}</p>
+      {value.timeZone?.assumed ? (
+        <p className="hint history-card__legacy">旧版记录未保存时区，现按北京时间显示；原排盘结果未重新计算。</p>
+      ) : null}
       <div className="history-card__actions">
         <button type="button" className="btn btn--small" onClick={() => onDuplicate(value)}>
           修改为副本

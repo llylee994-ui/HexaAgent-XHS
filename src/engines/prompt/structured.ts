@@ -53,7 +53,8 @@ export interface StructuredPromptData {
 }
 
 const RULES: StructuredPromptRules = {
-  solarTermSource: '香港天文台公布的二十四节气交节时刻（香港时间 = UTC+8，分钟级）',
+  solarTermSource:
+    '内置离线节气表（寿星万年历算法生成，覆盖 1899–2100 年；2019–2028 年的十二节与香港天文台公布值核对，误差不超过 1 分钟）',
   ziHourRule: 'no-day-rollover',
   trueSolarTime: false,
 }
