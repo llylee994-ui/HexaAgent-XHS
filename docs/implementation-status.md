@@ -24,7 +24,9 @@
 
 门禁：`npm test` 265 项在 `TZ=Asia/Shanghai`、`TZ=UTC`、`TZ=America/New_York` 三组环境下全部通过且结果一致；`npm run lint` 0 问题；`npm run build` 扫描 `0 violations`；`npx playwright test` 17 项通过（含新增 `time-zone.spec.ts` 的 UTC 设备用例）；产物体积 371,573 字节（+21,866 原始 / +9,249 gzip）。
 
-未做的事：`release/` 中已上传小红书的 `wenyao-xhs-0.1.0.zip` 未重新打包，也未改动 `release-summary.md`；需要提审新版本时再走 `docs/xhs-review-guide.md` 第 1 节流程。
+打包与交付：`release/wenyao-xhs-0.2.0.zip`（127,621 字节，SHA-256 `6fa12421…`，`index.html` 位于根目录，逐文件哈希与 `dist/` 一致）；交付记录写入 `release/release-summary.md`，已上传的 0.1.0 记录另存为 `release/release-summary-0.1.0.md`，0.1.0 的 ZIP 原样保留。`scripts/package-xhs.ps1` 改为从 `package.json` 读取版本号（不传 `-OutputPath` 时自动命名 `release/wenyao-xhs-<版本>.zip`，摘要版本号同源），此前版本号在脚本里硬编码为 0.1.0。
+
+尚未完成：真机验收（`docs/xhs-review-guide.md` 第 4 节清单，含新增的时区与节气边界两项）与小红书容器上传。
 
 ## 总览
 

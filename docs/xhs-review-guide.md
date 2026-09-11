@@ -13,7 +13,7 @@ npm run test:e2e     # 需先完成 build；本地起 4173 预览
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-xhs.ps1 -IconPath release/wenyao-icon-512.png
 ```
 
-`npm run test:e2e` 预览的是已经转换和扫描过的最终 `dist/`，不能用开发服务器预览代替。全部通过后，发布脚本会把 `dist/` 的**内容**压缩到 `release/wenyao-xhs-0.1.0.zip`，并重新打开 ZIP 逐项核对文件与哈希；`index.html` 位于 ZIP 根目录。`release/` 仅为本地交付产物，不提交 Git。
+`npm run test:e2e` 预览的是已经转换和扫描过的最终 `dist/`，不能用开发服务器预览代替。全部通过后，发布脚本会把 `dist/` 的**内容**压缩到 `release/wenyao-xhs-<package.json 版本>.zip`（当前 0.2.0；不传 `-OutputPath` 时自动按 `package.json` 的 `version` 命名，摘要里的版本号也取自它），并重新打开 ZIP 逐项核对文件与哈希；`index.html` 位于 ZIP 根目录。`release/` 仅为本地交付产物，不提交 Git。历史版本的交付记录另存为 `release/release-summary-<版本>.md`。
 
 本地门禁通过后，先把 ZIP 与图标上传小红书 PC 模拟器预览，再按第 4 节进行真机测试；平台容器验收不替代本地测试。
 

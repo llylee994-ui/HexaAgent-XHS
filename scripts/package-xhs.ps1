@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$DistPath = "dist",
-    [string]$OutputPath = "release/wenyao-xhs-0.1.0.zip",
+    # 留空时按 package.json 的 version 生成 release/wenyao-xhs-<版本>.zip
+    [string]$OutputPath = "",
     [string]$IconPath = ""
 )
 
@@ -11,6 +12,11 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.Drawing
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
+$packageJsonPath = Join-Path $projectRoot "package.json"
+$packageVersion = [string]((Get-Content -LiteralPath $packageJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json).version)
+if ([string]::IsNullOrWhiteSpace($packageVersion)) {
+    throw "Could not read the release version from $packageJsonPath"
+}
 $allowedExtensions = @(
     ".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".woff", ".woff2", ".json"
 )
@@ -73,6 +79,9 @@ function Get-PngDimensions([string]$PathValue) {
 }
 
 $dist = Get-ProjectPath $DistPath
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = "release/wenyao-xhs-$packageVersion.zip"
+}
 $zipPath = Get-ProjectPath $OutputPath
 $releaseDirectory = Split-Path -Parent $zipPath
 $summaryPath = Join-Path $releaseDirectory "release-summary.md"
@@ -252,7 +261,7 @@ try {
 # $appName XHS release summary
 
 - Name: $appName
-- Version: 0.1.0
+- Version: $packageVersion
 - Build time: $buildTime
 - ZIP: $zipPath
 - ZIP bytes: $($zipFile.Length)
