@@ -1061,3 +1061,23 @@ textarea {
     animation-iteration-count: 1 !important;
   }
 }
+
+.backup-panel {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.backup-panel__content {
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-button);
+  background: rgba(255, 255, 255, 0.55);
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  resize: vertical;
+}

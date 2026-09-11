@@ -22,7 +22,16 @@
 
 版本号：`schemaVersion` 1 → 2、`engineVersion` 0.1.0 → 0.2.0、`promptVersion` 2.0.0 → 2.1.0（`docs/architecture.md` 中原本记为 1.0.0 的 promptVersion 属文档漂移，已一并修正）。
 
-门禁：`npm test` 265 项在 `TZ=Asia/Shanghai`、`TZ=UTC`、`TZ=America/New_York` 三组环境下全部通过且结果一致；`npm run lint` 0 问题；`npm run build` 扫描 `0 violations`；`npx playwright test` 17 项通过（含新增 `time-zone.spec.ts` 的 UTC 设备用例）；产物体积 371,573 字节（+21,866 原始 / +9,249 gzip）。
+同版本内另加**备份与恢复**兜底入口（`src/features/history/backup-format.ts`、`BackupPanel.tsx`）：
+
+- 导出为一段纯文本（头部是人类可读的目录，正文每行一条 JSON 记录），只读原始记录默认一并导出——这是数据被清空时的抢救手段。
+- 恢复时整段粘贴即可：已存在的 id 一律跳过并计数，不覆盖也不删除任何现有数据；无法解析的行单独计数，不让整份备份失败；只读原始记录也能恢复并以只读形态展示。
+- 全程不调用剪贴板 API、不写文件、不联网，"复制"由平台长按菜单完成（构建扫描器对此有强制规则）。
+- 为此在仓库层新增 `hasRecord`（`get` 对只读记录返回 null，不能用于冲突判断）与 `putRaw`（恢复专用原样写入）。
+
+门禁：`npm test` 286 项在 `TZ=Asia/Shanghai`、`TZ=UTC`、`TZ=America/New_York` 三组环境下全部通过且结果一致；`npm run lint` 0 问题；`npm run build` 扫描 `0 violations`；`npx playwright test` 18 项通过（含 UTC 设备用例与备份导出/恢复端到端）；产物体积 378,696 字节（相对 0.1.0 增加 28,989 原始 / 11,452 gzip）。
+
+升级兼容已被测试固化（`tests/unit/case-db.test.ts`、`tests/unit/draft-store.test.ts`）：把 0.1.0 形态的记录（`schemaVersion` 1、无 `timeZone`、四柱快照来自旧近似节气）直接写进 IndexedDB，再经新版仓库读出，断言补时区、快照逐字段不变、仍可写回；读不出的记录以只读保留且原始数据不删除；现场摇卦活动草稿同样跨版本恢复。
 
 打包与交付：`release/wenyao-xhs-0.2.0.zip`（127,621 字节，SHA-256 `6fa12421…`，`index.html` 位于根目录，逐文件哈希与 `dist/` 一致）；交付记录写入 `release/release-summary.md`，已上传的 0.1.0 记录另存为 `release/release-summary-0.1.0.md`，0.1.0 的 ZIP 原样保留。`scripts/package-xhs.ps1` 改为从 `package.json` 读取版本号（不传 `-OutputPath` 时自动命名 `release/wenyao-xhs-<版本>.zip`，摘要版本号同源），此前版本号在脚本里硬编码为 0.1.0。
 

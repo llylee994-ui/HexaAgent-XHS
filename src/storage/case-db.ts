@@ -16,8 +16,12 @@ export interface CaseRepository {
   /** 全部记录，含迁移失败只读记录（浏览原始摘要用） */
   listEntries(): Promise<CaseEntry[]>
   get(id: string): Promise<DivinationCase | null>
+  /** 记录是否存在：含迁移失败的只读原始记录（get 对只读记录返回 null，恢复前必须用它判断） */
+  hasRecord(id: string): Promise<boolean>
   /** 新增或整体更新；空间不足时抛出 StorageFullError 且不删除旧记录 */
   put(value: DivinationCase): Promise<void>
+  /** 备份恢复专用：原样写入未经迁移校验的记录（只读抢救），调用方必须先查 hasRecord 避免覆盖 */
+  putRaw(record: Record<string, unknown>): Promise<void>
   delete(id: string): Promise<void>
   /** 按问题、标题、卦名、标签模糊搜索（不区分大小写） */
   search(query: string): Promise<DivinationCase[]>
@@ -134,12 +138,33 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
       }
     },
 
+    async hasRecord(id) {
+      const db = await openDatabase(indexedDB)
+      try {
+        const record = await withStore(db, 'readonly', (store) => store.get(id))
+        return Boolean(record)
+      } finally {
+        db.close()
+      }
+    },
+
     async put(value) {
       const db = await openDatabase(indexedDB)
       try {
         await withStore(db, 'readwrite', (store) => store.put(value as unknown as Record<string, unknown>))
       } catch (error) {
         // 不删除任何已有记录，交给调用方展示清理入口
+        throw toStorageError(error)
+      } finally {
+        db.close()
+      }
+    },
+
+    async putRaw(record) {
+      const db = await openDatabase(indexedDB)
+      try {
+        await withStore(db, 'readwrite', (store) => store.put(record))
+      } catch (error) {
         throw toStorageError(error)
       } finally {
         db.close()

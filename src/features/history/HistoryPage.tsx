@@ -7,6 +7,8 @@ import { createCaseRepository, type CaseEntry, type CaseRepository } from '../..
 import { StorageFullError } from '../../storage/errors'
 import { formatZonedDateTime } from '../../engines/calendar/zoned-time'
 import { STATUS_LABEL } from './status'
+import { BackupPanel } from './BackupPanel'
+import type { RestoreOutcome } from './backup-format'
 
 export interface HistoryPageProps {
   repository?: CaseRepository
@@ -155,6 +157,26 @@ export function HistoryPage({
     onView(value)
   }
 
+  /** 备份恢复：只新增，先查原始记录是否存在（get 对只读记录返回 null，不能用它判断） */
+  const restoreBackup = async (records: readonly Record<string, unknown>[]): Promise<RestoreOutcome> => {
+    let inserted = 0
+    let failed = 0
+    for (const record of records) {
+      const id = typeof record.id === 'string' ? record.id : ''
+      try {
+        if (!id || (await repository.hasRecord(id))) continue
+        await repository.putRaw(record)
+        inserted += 1
+      } catch (error) {
+        failed += 1
+        if (error instanceof StorageFullError) {
+          setError('存储空间不足，部分备份未能写入；已有记录未受影响。建议先删除旧卦例再重试。')
+        }
+      }
+    }
+    return { inserted, failed }
+  }
+
   return (
     <PageFrame title="卦例记录" canGoBack={frame.canGoBack} direction={frame.direction} onBack={frame.onBack}>
       <section className="page">
@@ -195,6 +217,8 @@ export function HistoryPage({
           )}
         </ul>
       )}
+
+      <BackupPanel entries={entries} onRestore={restoreBackup} onRestored={load} />
 
       <ConfirmDialog
         open={deleteTarget !== null}
