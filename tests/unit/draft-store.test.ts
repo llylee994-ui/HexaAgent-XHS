@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createDraft } from '../../src/domain/factories'
 import { draftStore } from '../../src/storage/draft-store'
 import { StorageFullError } from '../../src/storage/errors'
+import { beijing } from '../fixtures/beijing-time'
 
 function memoryStorage() {
   const map = new Map<string, string>()
@@ -28,7 +29,7 @@ function buildDraft(rawValues: number[] = []) {
   const draft = createDraft({
     question: '工作调动能否顺利',
     category: 'career',
-    castAt: new Date(2026, 7, 28, 12, 0).toISOString(),
+    castAt: beijing('2026-08-28 12:00').toISOString(),
     method: 'simulated-coins',
   })
   return { ...draft, rawValues: rawValues as never }

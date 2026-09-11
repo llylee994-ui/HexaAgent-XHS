@@ -4,9 +4,10 @@ import { FIXED_HEXAGRAM_CASES } from '../fixtures/hexagram-cases'
 import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
 import { YONGSHEN_BY_CATEGORY } from '../../src/engines/interpretation/categories'
+import { beijing } from '../fixtures/beijing-time'
 
 // 固定起卦时间：2026-08-28 12:00 → 月建申、日辰戌、旬空申酉
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 
 const ALL_CATEGORIES: QuestionCategory[] = [
   'career', 'wealth', 'relationship', 'study', 'health',

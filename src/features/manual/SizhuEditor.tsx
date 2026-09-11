@@ -1,4 +1,7 @@
 import type { HexagramChart } from '../../domain/types'
+import { CAST_TIME_ZONE } from '../../domain/time-zone'
+import { SUPPORTED_YEAR_RANGE } from '../../engines/calendar/solar-terms'
+import { parseZonedInput, toZonedInputValue } from '../../engines/calendar/zoned-time'
 import type { ManualEditorController } from './use-manual-editor'
 
 export interface SizhuEditorProps {
@@ -6,13 +9,7 @@ export interface SizhuEditorProps {
   chart: HexagramChart | null
 }
 
-function toInputValue(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
+/** 起卦时间的输入语义是排盘时区（北京时间）的墙上时刻，与设备本地时区无关 */
 export function SizhuEditor({ controller, chart }: SizhuEditorProps) {
   const sizhu = chart?.sizhu ?? { year: '', month: '', day: '', hour: '' }
   return (
@@ -23,13 +20,18 @@ export function SizhuEditor({ controller, chart }: SizhuEditorProps) {
         <input
           aria-label="起卦时间"
           type="datetime-local"
-          value={toInputValue(controller.state.castAt)}
+          min={`${SUPPORTED_YEAR_RANGE.fromYear}-01-01T00:00`}
+          max={`${SUPPORTED_YEAR_RANGE.toYear}-12-31T23:59`}
+          value={toZonedInputValue(controller.state.castAt, CAST_TIME_ZONE.offsetMinutes)}
           onChange={(event) => {
-            const next = new Date(event.target.value)
-            if (!Number.isNaN(next.getTime())) controller.setCastAt(next.toISOString())
+            const iso = parseZonedInput(event.target.value, CAST_TIME_ZONE.offsetMinutes)
+            if (iso) controller.setCastAt(iso)
           }}
         />
       </label>
+      <p className="manual-derived-note">
+        按北京时间（UTC+8）解释，支持 {SUPPORTED_YEAR_RANGE.fromYear}–{SUPPORTED_YEAR_RANGE.toYear} 年
+      </p>
       <div className="sizhu-grid">
         {(['year', 'month', 'day', 'hour'] as const).map((key) => (
           <label className="field" key={key}>

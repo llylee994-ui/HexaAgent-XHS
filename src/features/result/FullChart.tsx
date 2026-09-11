@@ -21,15 +21,18 @@ function CorrectionNotes({ lines }: { lines: HexagramChart['original']['lines'] 
 
 export interface FullChartProps {
   chart: HexagramChart
+  /** 四柱是否经过人工校正：与按起卦时间自动推算的结果不同 */
+  sizhuOverridden?: boolean
 }
 
 /** 完整排盘：本卦与变卦的逐爻干支、六亲、六神、世应、旬空与伏神 */
-export function FullChart({ chart }: FullChartProps) {
+export function FullChart({ chart, sizhuOverridden = false }: FullChartProps) {
   return (
     <section className="full-chart" aria-label="完整排盘">
       <h2 className="section-title">完整排盘</h2>
       <p className="full-chart__meta">
-        四柱：{chart.sizhu.year} {chart.sizhu.month} {chart.sizhu.day} {chart.sizhu.hour} · 月建
+        四柱：{chart.sizhu.year} {chart.sizhu.month} {chart.sizhu.day} {chart.sizhu.hour}
+        {sizhuOverridden ? '（人工校正）' : ''} · 月建
         {chart.sizhu.month[1]} 日辰{chart.sizhu.day[1]} · 旬空{chart.xunKong[0]}{chart.xunKong[1]}
       </p>
       <h3 className="full-chart__subtitle">本卦 · {chart.original.name}（{chart.original.palace}宫{chart.original.palaceElement}）</h3>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
 import { interpretCase } from '../../engines/interpretation/engine'
+import { isSizhuOverridden } from '../../engines/najia/chart'
 import { HeroCard } from './HeroCard'
 import { Observations } from './Observations'
 import { FullChart } from './FullChart'
@@ -78,7 +79,7 @@ export function ResultPage({ caseValue, onChange, onBack, onHome = onBack, frame
 
       {disclosureOpen ? (
         <>
-          <FullChart chart={caseValue.chart} />
+          <FullChart chart={caseValue.chart} sizhuOverridden={isSizhuOverridden(caseValue.castAt, caseValue.chart, caseValue.timeZone)} />
           <ReferenceText chart={caseValue.chart} />
         </>
       ) : null}

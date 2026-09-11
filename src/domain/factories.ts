@@ -4,6 +4,7 @@ import type {
   QuestionCategory,
 } from './types'
 import { ENGINE_VERSION, SCHEMA_VERSION } from './versions'
+import { CAST_TIME_ZONE } from './time-zone'
 
 export interface CreateDraftInput {
   question: string
@@ -11,6 +12,7 @@ export interface CreateDraftInput {
   castAt: string
   method: CastMethod
   note?: string
+  castStartedAt?: string
   parentCaseId?: string | null
 }
 
@@ -30,6 +32,8 @@ export function createDraft(input: CreateDraftInput): DivinationCase {
     category: input.category,
     note: input.note ?? '',
     castAt: input.castAt,
+    ...(input.castStartedAt ? { castStartedAt: input.castStartedAt } : {}),
+    timeZone: CAST_TIME_ZONE,
     method: input.method,
     coinThrows: [],
     rawValues: [],

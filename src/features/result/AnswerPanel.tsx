@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AiAnswer, DivinationCase } from '../../domain/types'
+import { formatZonedDateTime } from '../../engines/calendar/zoned-time'
 
 const AI_SOURCES = ['ChatGPT', 'DeepSeek', '豆包', '其他'] as const
 
@@ -70,7 +71,7 @@ export function AnswerPanel({ caseValue, promptId, open, onChange }: AnswerPanel
           {caseValue.answers.map((answer) => (
             <li key={answer.id} className="answer-panel__item">
               <p className="answer-panel__meta">
-                {answer.source} · {answer.createdAt.slice(0, 16).replace('T', ' ')}
+                {answer.source} · {formatZonedDateTime(answer.createdAt, caseValue.timeZone?.offsetMinutes)}
               </p>
               <p className="answer-panel__content">{answer.content}</p>
             </li>

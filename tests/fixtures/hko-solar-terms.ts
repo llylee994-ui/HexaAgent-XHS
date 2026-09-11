@@ -1,0 +1,30 @@
+/**
+ * 香港天文台公布的十二"节"日期与时刻（香港時間 = UTC+8，分钟级）。
+ *
+ * 来源：香港天文台「二十四節氣的日期及時間資料」
+ *   https://www.hko.gov.hk/tc/gts/astronomy/Solar_Term.htm
+ *   数据文件 https://www.hko.gov.hk/tc/gts/astronomy/data/files/24SolarTerms_<年>.xml
+ *   该页明确「以上的時間是香港時間，即協調世界時加 8小時」。
+ * 取数日期：2026-09-11（天文台目前只提供 2019–2028 年）
+ *
+ * 用途：作为 solar-terms 数据表的外部精度基准，只在测试中使用，不进入运行时代码。
+ */
+
+export interface HkoJie { month: number; day: number; hour: number; minute: number }
+
+/** 年份 → 12 项，顺序与运行时的 JIE_OFFSET_MINUTES 一致 */
+export const HKO_JIE_BY_YEAR: Readonly<Record<number, readonly HkoJie[]>> = {
+  2019: [{ month: 1, day: 5, hour: 23, minute: 39 }, { month: 2, day: 4, hour: 11, minute: 14 }, { month: 3, day: 6, hour: 5, minute: 10 }, { month: 4, day: 5, hour: 9, minute: 51 }, { month: 5, day: 6, hour: 3, minute: 3 }, { month: 6, day: 6, hour: 7, minute: 6 }, { month: 7, day: 7, hour: 17, minute: 21 }, { month: 8, day: 8, hour: 3, minute: 13 }, { month: 9, day: 8, hour: 6, minute: 17 }, { month: 10, day: 8, hour: 22, minute: 6 }, { month: 11, day: 8, hour: 1, minute: 24 }, { month: 12, day: 7, hour: 18, minute: 18 }],
+  2020: [{ month: 1, day: 6, hour: 5, minute: 30 }, { month: 2, day: 4, hour: 17, minute: 3 }, { month: 3, day: 5, hour: 10, minute: 57 }, { month: 4, day: 4, hour: 15, minute: 38 }, { month: 5, day: 5, hour: 8, minute: 51 }, { month: 6, day: 5, hour: 12, minute: 58 }, { month: 7, day: 6, hour: 23, minute: 14 }, { month: 8, day: 7, hour: 9, minute: 6 }, { month: 9, day: 7, hour: 12, minute: 8 }, { month: 10, day: 8, hour: 3, minute: 55 }, { month: 11, day: 7, hour: 7, minute: 14 }, { month: 12, day: 7, hour: 0, minute: 9 }],
+  2021: [{ month: 1, day: 5, hour: 11, minute: 23 }, { month: 2, day: 3, hour: 22, minute: 59 }, { month: 3, day: 5, hour: 16, minute: 54 }, { month: 4, day: 4, hour: 21, minute: 35 }, { month: 5, day: 5, hour: 14, minute: 47 }, { month: 6, day: 5, hour: 18, minute: 52 }, { month: 7, day: 7, hour: 5, minute: 5 }, { month: 8, day: 7, hour: 14, minute: 54 }, { month: 9, day: 7, hour: 17, minute: 53 }, { month: 10, day: 8, hour: 9, minute: 39 }, { month: 11, day: 7, hour: 12, minute: 59 }, { month: 12, day: 7, hour: 5, minute: 57 }],
+  2022: [{ month: 1, day: 5, hour: 17, minute: 14 }, { month: 2, day: 4, hour: 4, minute: 51 }, { month: 3, day: 5, hour: 22, minute: 44 }, { month: 4, day: 5, hour: 3, minute: 20 }, { month: 5, day: 5, hour: 20, minute: 26 }, { month: 6, day: 6, hour: 0, minute: 26 }, { month: 7, day: 7, hour: 10, minute: 38 }, { month: 8, day: 7, hour: 20, minute: 29 }, { month: 9, day: 7, hour: 23, minute: 32 }, { month: 10, day: 8, hour: 15, minute: 22 }, { month: 11, day: 7, hour: 18, minute: 45 }, { month: 12, day: 7, hour: 11, minute: 46 }],
+  2023: [{ month: 1, day: 5, hour: 23, minute: 5 }, { month: 2, day: 4, hour: 10, minute: 43 }, { month: 3, day: 6, hour: 4, minute: 36 }, { month: 4, day: 5, hour: 9, minute: 13 }, { month: 5, day: 6, hour: 2, minute: 19 }, { month: 6, day: 6, hour: 6, minute: 18 }, { month: 7, day: 7, hour: 16, minute: 31 }, { month: 8, day: 8, hour: 2, minute: 23 }, { month: 9, day: 8, hour: 5, minute: 27 }, { month: 10, day: 8, hour: 21, minute: 16 }, { month: 11, day: 8, hour: 0, minute: 36 }, { month: 12, day: 7, hour: 17, minute: 33 }],
+  2024: [{ month: 1, day: 6, hour: 4, minute: 49 }, { month: 2, day: 4, hour: 16, minute: 27 }, { month: 3, day: 5, hour: 10, minute: 23 }, { month: 4, day: 4, hour: 15, minute: 2 }, { month: 5, day: 5, hour: 8, minute: 10 }, { month: 6, day: 5, hour: 12, minute: 10 }, { month: 7, day: 6, hour: 22, minute: 20 }, { month: 8, day: 7, hour: 8, minute: 9 }, { month: 9, day: 7, hour: 11, minute: 11 }, { month: 10, day: 8, hour: 3, minute: 0 }, { month: 11, day: 7, hour: 6, minute: 20 }, { month: 12, day: 6, hour: 23, minute: 17 }],
+  2025: [{ month: 1, day: 5, hour: 10, minute: 33 }, { month: 2, day: 3, hour: 22, minute: 10 }, { month: 3, day: 5, hour: 16, minute: 7 }, { month: 4, day: 4, hour: 20, minute: 49 }, { month: 5, day: 5, hour: 13, minute: 57 }, { month: 6, day: 5, hour: 17, minute: 57 }, { month: 7, day: 7, hour: 4, minute: 5 }, { month: 8, day: 7, hour: 13, minute: 52 }, { month: 9, day: 7, hour: 16, minute: 52 }, { month: 10, day: 8, hour: 8, minute: 41 }, { month: 11, day: 7, hour: 12, minute: 4 }, { month: 12, day: 7, hour: 5, minute: 5 }],
+  2026: [{ month: 1, day: 5, hour: 16, minute: 23 }, { month: 2, day: 4, hour: 4, minute: 2 }, { month: 3, day: 5, hour: 21, minute: 59 }, { month: 4, day: 5, hour: 2, minute: 40 }, { month: 5, day: 5, hour: 19, minute: 49 }, { month: 6, day: 5, hour: 23, minute: 48 }, { month: 7, day: 7, hour: 9, minute: 57 }, { month: 8, day: 7, hour: 19, minute: 43 }, { month: 9, day: 7, hour: 22, minute: 41 }, { month: 10, day: 8, hour: 14, minute: 29 }, { month: 11, day: 7, hour: 17, minute: 52 }, { month: 12, day: 7, hour: 10, minute: 53 }],
+  2027: [{ month: 1, day: 5, hour: 22, minute: 10 }, { month: 2, day: 4, hour: 9, minute: 46 }, { month: 3, day: 6, hour: 3, minute: 40 }, { month: 4, day: 5, hour: 8, minute: 17 }, { month: 5, day: 6, hour: 1, minute: 25 }, { month: 6, day: 6, hour: 5, minute: 26 }, { month: 7, day: 7, hour: 15, minute: 37 }, { month: 8, day: 8, hour: 1, minute: 27 }, { month: 9, day: 8, hour: 4, minute: 28 }, { month: 10, day: 8, hour: 20, minute: 17 }, { month: 11, day: 7, hour: 23, minute: 39 }, { month: 12, day: 7, hour: 16, minute: 38 }],
+  2028: [{ month: 1, day: 6, hour: 3, minute: 55 }, { month: 2, day: 4, hour: 15, minute: 31 }, { month: 3, day: 5, hour: 9, minute: 25 }, { month: 4, day: 4, hour: 14, minute: 3 }, { month: 5, day: 5, hour: 7, minute: 12 }, { month: 6, day: 5, hour: 11, minute: 16 }, { month: 7, day: 6, hour: 21, minute: 30 }, { month: 8, day: 7, hour: 7, minute: 21 }, { month: 9, day: 7, hour: 10, minute: 22 }, { month: 10, day: 8, hour: 2, minute: 9 }, { month: 11, day: 7, hour: 5, minute: 27 }, { month: 12, day: 6, hour: 22, minute: 25 }],
+}
+
+/** 核对顺序：与 JIE_NAMES 对应 */
+export const HKO_JIE_NAMES = ["小寒","立春","惊蛰","清明","立夏","芒种","小暑","立秋","白露","寒露","立冬","大雪"] as const

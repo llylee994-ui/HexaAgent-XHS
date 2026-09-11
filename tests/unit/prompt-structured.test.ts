@@ -5,8 +5,9 @@ import { buildChart } from '../../src/engines/najia/chart'
 import { generatePrompt } from '../../src/engines/prompt/engine'
 import { buildStructuredPromptData } from '../../src/engines/prompt/structured'
 import { formatReadableChart } from '../../src/engines/prompt/formatter'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 
 function buildCase(): DivinationCase {
   const rawValues = [6, 7, 7, 7, 7, 7] as const
@@ -45,5 +46,16 @@ describe('structured professional prompt data', () => {
 
   it('concise prompt does not include the structured JSON block', () => {
     expect(generatePrompt(buildCase(), 'concise').content).not.toContain('```json')
+  })
+
+  it('四柱被人工覆盖时结构化数据如实标记', () => {
+    const value = buildCase()
+    const overridden: DivinationCase = {
+      ...value,
+      chart: { ...value.chart!, sizhu: { year: '甲子', month: '乙丑', day: '丙寅', hour: '丁卯' } },
+    }
+    expect(buildStructuredPromptData(overridden).sizhuOverridden).toBe(true)
+    expect(generatePrompt(overridden, 'concise').content).toContain('（人工校正，非按起卦时间推算）')
+    expect(buildStructuredPromptData(value).sizhuOverridden).toBe(false)
   })
 })

@@ -5,8 +5,9 @@ import { PROMPT_VERSION } from '../../src/domain/versions'
 import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
 import { generatePrompt } from '../../src/engines/prompt/engine'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 
 function buildCase(): DivinationCase {
   const rawValues = [6, 7, 7, 7, 7, 7] as const
@@ -30,6 +31,44 @@ function buildCase(): DivinationCase {
     observations: interpret(chart, 'career').observations,
   }
 }
+
+describe('generatePrompt 起卦时间与时区', () => {
+  it('文字时间按北京时间输出并标注时区，不出现裸 UTC 时刻', () => {
+    const content = generatePrompt(buildCase(), 'concise').content
+    // CAST_AT 的墙上时刻即北京时间 2026-08-28 12:00（绝对时刻 04:00Z）
+    expect(content).toContain('起卦时间：2026-08-28 12:00（北京时间 UTC+8）')
+    expect(content).toContain('排盘时区：Asia/Shanghai（UTC+8）')
+    expect(content).not.toContain('2026-08-28T04:00:00.000Z')
+  })
+
+  it('声明排盘规则，供外部 AI 复核四柱', () => {
+    const content = generatePrompt(buildCase(), 'concise').content
+    expect(content).toContain('排盘规则：年柱以立春、月柱以十二"节"的交节时刻为界')
+    expect(content).toContain('23:00 起子时，且 23:00-23:59 不换日柱')
+    expect(content).toContain('未做真太阳时校正')
+  })
+
+  it('提示词中的本地时间与绝对时刻互为逆运算（两者不会各自漂移）', () => {
+    const value = buildCase()
+    const content = generatePrompt(value, 'professional').content
+    const matched = /起卦时间：(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})（北京时间 UTC\+8）/.exec(content)
+    expect(matched).not.toBeNull()
+    const [, day, clock] = matched!
+    const instant = Date.parse(`${day}T${clock}:00.000+08:00`)
+    expect(new Date(instant).toISOString()).toBe(value.castAt)
+  })
+
+  it('专业版 JSON 带上本地时间、时区与规则，且四柱未被标记为人工校正', () => {
+    const value = buildCase()
+    const content = generatePrompt(value, 'professional').content
+    const json = JSON.parse(content.split('```json\n')[1].split('\n```')[0])
+    expect(json.castAtLocal).toBe('2026-08-28 12:00')
+    expect(json.timeZone).toEqual({ id: 'Asia/Shanghai', label: '北京时间', offsetMinutes: 480 })
+    expect(json.rules.ziHourRule).toBe('no-day-rollover')
+    expect(json.rules.trueSolarTime).toBe(false)
+    expect(json.sizhuOverridden).toBe(false)
+  })
+})
 
 describe('generatePrompt 精简版', () => {
   it('快照带 PROMPT_VERSION 与完整文本', () => {

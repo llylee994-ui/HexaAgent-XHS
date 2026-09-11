@@ -76,6 +76,35 @@ function validateTimestamp(
   }
 }
 
+function validateTimeZone(
+  value: unknown,
+  path: string,
+  issues: ValidationIssue[],
+) {
+  if (!isRecord(value)) {
+    addIssue(issues, path, '必须记录排盘时区')
+    return
+  }
+  if (typeof value.id !== 'string' || value.id.length === 0) {
+    addIssue(issues, `${path}.id`, '时区标识必须是非空字符串')
+  }
+  if (typeof value.label !== 'string' || value.label.length === 0) {
+    addIssue(issues, `${path}.label`, '时区名称必须是非空字符串')
+  }
+  const offset = value.offsetMinutes
+  if (
+    typeof offset !== 'number' ||
+    !Number.isInteger(offset) ||
+    offset < -1440 ||
+    offset > 1440
+  ) {
+    addIssue(issues, `${path}.offsetMinutes`, '时区偏移必须是 -1440 到 1440 之间的整数分钟')
+  }
+  if (value.assumed !== undefined && typeof value.assumed !== 'boolean') {
+    addIssue(issues, `${path}.assumed`, '迁移标记必须是布尔值')
+  }
+}
+
 function validateRawValues(
   value: unknown,
   status: unknown,
@@ -173,6 +202,10 @@ export function validateCase(value: unknown): ValidationResult {
   }
 
   validateTimestamp(value.castAt, 'castAt', issues)
+  if (value.castStartedAt !== undefined) {
+    validateTimestamp(value.castStartedAt, 'castStartedAt', issues)
+  }
+  validateTimeZone(value.timeZone, 'timeZone', issues)
   validateTimestamp(value.createdAt, 'createdAt', issues)
   validateTimestamp(value.updatedAt, 'updatedAt', issues)
   validateRawValues(value.rawValues, value.status, issues)

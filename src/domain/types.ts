@@ -68,6 +68,28 @@ export interface Sizhu {
   hour: string
 }
 
+/**
+ * 排盘采用的时区。一次排盘的全部日历字段（年月日时）都在该时区内解释，
+ * 结果与设备/容器的本地时区无关。
+ */
+export interface CastTimeZone {
+  id: string
+  label: string
+  offsetMinutes: number
+  /** 由 v1 记录迁移而来、原记录未保存时区时为 true */
+  assumed?: boolean
+}
+
+/** 某个时区内的日历字段 */
+export interface ZonedParts {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+}
+
 export interface HexagramChart {
   original: HexagramFigure
   changed: HexagramFigure | null
@@ -110,6 +132,10 @@ export interface DivinationCase {
   category: QuestionCategory
   note: string
   castAt: string
+  /** 起卦开始时刻，仅作记录，不参与排盘 */
+  castStartedAt?: string
+  /** 排盘时区：起卦时间与四柱都按它解释（v2 起必填，迁移记录为 assumed） */
+  timeZone?: CastTimeZone
   method: CastMethod
   coinThrows: CoinThrow[]
   rawValues: RawYaoValue[]

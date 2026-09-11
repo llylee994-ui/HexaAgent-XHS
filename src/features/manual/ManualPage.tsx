@@ -19,6 +19,7 @@ const STATUS_LABEL = {
   idle: undefined,
   'auto-filled': '已自动排盘',
   corrected: '已校正',
+  'time-updated': '已按新时间重算',
   saved: '草稿已保存',
   error: '尚未保存，请检查错误',
 } as const

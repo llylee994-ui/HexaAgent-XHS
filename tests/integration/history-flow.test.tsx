@@ -8,8 +8,9 @@ import App from '../../src/app/App'
 import { HistoryPage } from '../../src/features/history/HistoryPage'
 import { createCaseRepository, type CaseRepository } from '../../src/storage/case-db'
 import { StorageFullError } from '../../src/storage/errors'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 const repository = createCaseRepository()
 
 async function seedCase(

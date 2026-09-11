@@ -5,8 +5,9 @@ import { createDraft } from '../../src/domain/factories'
 import type { AiAnswer, DivinationCase, PromptSnapshot } from '../../src/domain/types'
 import { buildChart } from '../../src/engines/najia/chart'
 import { createCaseRepository } from '../../src/storage/case-db'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT_DATE = new Date(2026, 7, 28, 12, 0)
+const CAST_AT_DATE = beijing('2026-08-28 12:00')
 
 function buildSavedCase(overrides: Partial<DivinationCase> = {}): DivinationCase {
   const draft = createDraft({

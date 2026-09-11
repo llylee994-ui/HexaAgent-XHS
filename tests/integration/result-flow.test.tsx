@@ -8,8 +8,9 @@ import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
 import { ResultPage } from '../../src/features/result/ResultPage'
 import { ReferenceText } from '../../src/features/result/ReferenceText'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 
 function buildCase(): DivinationCase {
   const rawValues = [6, 7, 7, 7, 7, 7] as const

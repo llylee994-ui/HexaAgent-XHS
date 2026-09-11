@@ -1,7 +1,11 @@
 import type { DivinationCase, PromptSnapshot, PromptVariant } from '../../domain/types'
 import { PROMPT_VERSION } from '../../domain/versions'
 import { YONGSHEN_BY_CATEGORY } from '../interpretation/categories'
+import { isSizhuOverridden } from '../najia/chart'
 import {
+  formatCastRules,
+  formatCastTime,
+  formatCastZone,
   formatCategory,
   formatCoinThrows,
   formatReadableChart,
@@ -11,13 +15,23 @@ import {
 import { buildStructuredPromptData } from './structured'
 import { PROMPT_CONSTRAINTS, PROMPT_FOOTER, PROMPT_HEADER } from './templates'
 
+/** 四柱行：人工校正过的四柱必须标明，否则外部 AI 会以为它是按起卦时间推算出来的 */
+function sizhuLine(caseValue: DivinationCase): string {
+  const chart = caseValue.chart
+  if (!chart) return '四柱：—'
+  const overridden = isSizhuOverridden(caseValue.castAt, chart, caseValue.timeZone)
+  return `四柱：${formatSizhu(chart.sizhu)}${overridden ? '（人工校正，非按起卦时间推算）' : ''}`
+}
+
 function commonHeader(caseValue: DivinationCase, variant: PromptVariant): string[] {
   const lines = [
     PROMPT_HEADER[variant],
     `问题：${caseValue.question}`,
     `类别：${formatCategory(caseValue.category)}`,
-    `起卦时间：${caseValue.castAt}`,
+    `起卦时间：${formatCastTime(caseValue.castAt, caseValue.timeZone)}`,
+    `排盘时区：${formatCastZone(caseValue.timeZone)}`,
     `起卦方式：${formatMethod(caseValue.method)}`,
+    ...formatCastRules(),
   ]
   if (caseValue.note) {
     lines.push(`备注：${caseValue.note}`)
@@ -35,7 +49,7 @@ function conciseBody(caseValue: DivinationCase): string[] {
     `本卦：${chart.original.name}（${chart.original.palace}宫）`,
     chart.changed ? `变卦：${chart.changed.name}` : '静卦',
     changing,
-    `四柱：${formatSizhu(chart.sizhu)}`,
+    sizhuLine(caseValue),
     `月建：${chart.sizhu.month[1]} 日辰：${chart.sizhu.day[1]}`,
     `旬空：${chart.xunKong[0]}${chart.xunKong[1]}`,
     `用神：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,
@@ -56,7 +70,7 @@ function professionalBody(caseValue: DivinationCase): string[] {
   lines.push('', '人类可读排盘：', ...formatReadableChart(caseValue), '', '结构化排盘数据：', '```json', JSON.stringify(buildStructuredPromptData(caseValue), null, 2), '```')
   lines.push(
     '',
-    `四柱：${formatSizhu(chart.sizhu)}`,
+    sizhuLine(caseValue),
     `月建：${chart.sizhu.month[1]} 日辰：${chart.sizhu.day[1]}`,
     `旬空：${chart.xunKong[0]}${chart.xunKong[1]}`,
     `用神：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,

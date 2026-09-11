@@ -1,5 +1,6 @@
 import type { DivinationCase } from '../domain/types'
 import { SCHEMA_VERSION } from '../domain/versions'
+import { CAST_TIME_ZONE } from '../domain/time-zone'
 import { validateCase } from '../domain/validation'
 
 export type MigrationResult =
@@ -7,9 +8,15 @@ export type MigrationResult =
   | { mode: 'readonly'; raw: unknown; reason: string }
 
 // 逐级迁移表：键为来源 schemaVersion，函数将该版本记录转换为目标版本。
-// 当前 SCHEMA_VERSION = 1 为首个版本，暂无历史版本需要迁移。
 type MigrationStep = (record: Record<string, unknown>) => Record<string, unknown>
-const MIGRATIONS: Partial<Record<number, MigrationStep>> = {}
+const MIGRATIONS: Partial<Record<number, MigrationStep>> = {
+  // v1 → v2：v1 记录没有保存排盘时区，补默认值并标记 assumed（原快照不改写）。
+  1: (record) => ({
+    ...record,
+    schemaVersion: 2,
+    timeZone: { ...CAST_TIME_ZONE, assumed: true },
+  }),
+}
 
 function readonly(raw: unknown, reason: string): MigrationResult {
   return { mode: 'readonly', raw, reason }

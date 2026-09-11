@@ -5,6 +5,7 @@ import type { HistoryViewState, PageFrameBinding } from '../../app/navigation'
 import { DETACHED_FRAME } from '../../app/navigation'
 import { createCaseRepository, type CaseEntry, type CaseRepository } from '../../storage/case-db'
 import { StorageFullError } from '../../storage/errors'
+import { formatZonedDateTime } from '../../engines/calendar/zoned-time'
 import { STATUS_LABEL } from './status'
 
 export interface HistoryPageProps {
@@ -37,7 +38,7 @@ function HistoryCard({
         <span className={`status-chip status-chip--${value.status}`}>{STATUS_LABEL[value.status]}</span>
       </div>
       <p className="history-card__meta">
-        {value.chart?.original.name ?? '未排盘'} · {value.updatedAt.slice(0, 16).replace('T', ' ')}
+        {value.chart?.original.name ?? '未排盘'} · {formatZonedDateTime(value.updatedAt, value.timeZone?.offsetMinutes)}
       </p>
       <p className="history-card__question">{value.question}</p>
       <div className="history-card__actions">

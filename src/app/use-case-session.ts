@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CastMethod, CoinThrow, DivinationCase, QuestionCategory, RawYaoValue } from '../domain/types'
 import { ENGINE_VERSION, SCHEMA_VERSION } from '../domain/versions'
+import { CAST_TIME_ZONE } from '../domain/time-zone'
 import { buildChart, type ChartOverrides } from '../engines/najia/chart'
 import { facesToRawValue, type CoinFaces } from '../engines/divination/coins'
 import { draftStore } from '../storage/draft-store'
@@ -8,6 +9,7 @@ import { draftStore } from '../storage/draft-store'
 /**
  * 起卦会话状态机：question -> method -> casting -> review。
  * 现场摇卦与手动排盘都收敛到同一条数据链：最终只写入 rawValues 并调用同一个 buildChart。
+ * 起卦时刻以"得卦"为准（六爻齐备的那一刻），确认页可人工校正；开始时刻另记 castStartedAt。
  * 会话内任何推进都会自动保存草稿，完成后清理草稿。
  */
 export type SessionStep = 'question' | 'method' | 'casting' | 'review'
@@ -20,6 +22,7 @@ interface SessionState {
   category: QuestionCategory | ''
   note: string
   castAt: string
+  castStartedAt: string | null
   coinThrows: CoinThrow[]
   entries: (RawYaoValue | null)[]
   overrides: ChartOverrides
@@ -34,10 +37,20 @@ function freshState(): SessionState {
     category: '',
     note: '',
     castAt: new Date().toISOString(),
+    castStartedAt: null,
     coinThrows: [],
     entries: [null, null, null, null, null, null],
     overrides: {},
   }
+}
+
+/** 推进流程：首次进入时记录开始时刻，正式 castAt 留到得卦时确定 */
+function beginFlow(patch: Partial<SessionState>): (previous: SessionState) => SessionState {
+  return (previous) => ({
+    ...previous,
+    ...patch,
+    castStartedAt: previous.castStartedAt ?? new Date().toISOString(),
+  })
 }
 
 function rawValuesToEntries(rawValues: readonly RawYaoValue[]): (RawYaoValue | null)[] {
@@ -61,6 +74,7 @@ function restoreState(): SessionState {
     category: draft.category,
     note: draft.note,
     castAt: draft.castAt,
+    castStartedAt: null,
     coinThrows: draft.coinThrows,
     entries: rawValuesToEntries(draft.rawValues),
     step: 'casting',
@@ -78,6 +92,8 @@ function toDraft(state: SessionState): DivinationCase {
     category: state.category === '' ? 'other' : state.category,
     note: state.note,
     castAt: state.castAt,
+    ...(state.castStartedAt ? { castStartedAt: state.castStartedAt } : {}),
+    timeZone: CAST_TIME_ZONE,
     method: state.method ?? 'manual',
     coinThrows: state.coinThrows,
     rawValues: state.entries.filter((value): value is RawYaoValue => value !== null),
@@ -142,15 +158,15 @@ export function useCaseSession(): CaseSession {
   }, [])
 
   const startCastFlow = useCallback(() => {
-    setState((prev) => ({ ...prev, step: 'method', castAt: new Date().toISOString() }))
+    setState(beginFlow({ step: 'method' }))
   }, [])
 
   const startManualFlow = useCallback(() => {
-    setState((prev) => ({ ...prev, method: 'manual', step: 'casting', castAt: new Date().toISOString() }))
+    setState(beginFlow({ method: 'manual', step: 'casting' }))
   }, [])
 
   const chooseMethod = useCallback((method: CastMethod) => {
-    setState((prev) => ({ ...prev, method, step: 'casting', castAt: new Date().toISOString() }))
+    setState(beginFlow({ method, step: 'casting' }))
   }, [])
 
   const addCoinRound = useCallback((faces: CoinFaces) => {
@@ -164,8 +180,10 @@ export function useCaseSession(): CaseSession {
       const entries = [...prev.entries]
       entries[nextIndex] = rawValue
       const coinThrows = [...prev.coinThrows, { round, faces, rawValue }]
-      const step = entries.every((value) => value !== null) ? 'review' : 'casting'
-      return { ...prev, entries, coinThrows, step }
+      const completed = entries.every((value) => value !== null)
+      const step = completed ? 'review' : 'casting'
+      // 六爻齐备即得卦：此刻确定起卦时间，确认页仍可人工校正
+      return { ...prev, entries, coinThrows, step, ...(completed ? { castAt: new Date().toISOString() } : {}) }
     })
   }, [])
 
@@ -216,7 +234,7 @@ export function useCaseSession(): CaseSession {
       ...toDraft(state),
       status: 'cast',
       rawValues: values,
-      chart: buildChart(values, new Date(state.castAt), state.overrides),
+      chart: buildChart(values, state.castAt, state.overrides),
       createdAt: now,
       updatedAt: now,
     }

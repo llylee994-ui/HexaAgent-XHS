@@ -1,4 +1,5 @@
 import type {
+  CastTimeZone,
   HexagramChart,
   HexagramFigure,
   Fushen,
@@ -8,6 +9,7 @@ import type {
   Sizhu,
   YaoLine,
 } from '../../domain/types'
+import { CAST_TIME_ZONE } from '../../domain/time-zone'
 import { buildHexagram, type BasicHexagramFigure } from '../hexagram/engine'
 import { calculateSizhu, sizhuXunKong } from '../calendar/calendar'
 import { getZhiWuxing } from '../calendar/ganzhi'
@@ -132,18 +134,49 @@ function toFigure(figure: BasicHexagramFigure, lines: readonly YaoLine[]): Hexag
   }
 }
 
+export interface BuildChartOptions {
+  /** 排盘时区，缺省为北京时间（UTC+8） */
+  timeZone?: CastTimeZone
+}
+
+/**
+ * 四柱是否被人工覆盖：与按起卦时间自动推导的结果不同即为覆盖。
+ * 迁移自 v1 的记录未保存时区（timeZone.assumed），其快照无法与之比对，一律视为未覆盖。
+ */
+export function isSizhuOverridden(
+  castAt: string,
+  chart: HexagramChart | null,
+  timeZone?: CastTimeZone,
+): boolean {
+  if (!chart || timeZone?.assumed) return false
+  try {
+    const computed = calculateSizhu(castAt, (timeZone ?? CAST_TIME_ZONE).offsetMinutes)
+    return (
+      computed.year !== chart.sizhu.year ||
+      computed.month !== chart.sizhu.month ||
+      computed.day !== chart.sizhu.day ||
+      computed.hour !== chart.sizhu.hour
+    )
+  } catch {
+    return false
+  }
+}
+
 /**
  * 唯一的正式排盘入口：爻值 + 起卦时间（可选专业覆盖）→ 完整卦象。
- * 覆盖字段在最后合并；覆盖地支时五行、六亲与旬空随之重算。
+ * 起卦时间与四柱都按 options.timeZone 解释；覆盖字段在最后合并；
+ * 覆盖地支时五行、六亲与旬空随之重算。
  */
 export function buildChart(
   rawValues: readonly RawYaoValue[],
-  castAt: Date,
+  castAt: string | number | Date,
   overrides?: ChartOverrides,
+  options?: BuildChartOptions,
 ): HexagramChart {
   const basic = buildHexagram(rawValues)
+  const timeZone = options?.timeZone ?? CAST_TIME_ZONE
 
-  const sizhu = overrides?.sizhu ?? calculateSizhu(castAt)
+  const sizhu = overrides?.sizhu ?? calculateSizhu(castAt, timeZone.offsetMinutes)
   const xunKong = sizhuXunKong(sizhu)
   const context: DecorateContext = {
     dayGan: sizhu.day[0],

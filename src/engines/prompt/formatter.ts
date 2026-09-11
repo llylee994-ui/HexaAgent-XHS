@@ -1,5 +1,7 @@
-import type { CoinThrow, CastMethod, HexagramFigure, LinePosition, Sizhu, YaoLine, QuestionCategory } from '../../domain/types'
+import type { CoinThrow, CastMethod, CastTimeZone, HexagramFigure, LinePosition, Sizhu, YaoLine, QuestionCategory } from '../../domain/types'
+import { CAST_TIME_ZONE } from '../../domain/time-zone'
 import { facesToRawValue } from '../divination/coins'
+import { formatUtcOffset, formatZonedDateTime, formatZoneLabel } from '../calendar/zoned-time'
 import { CATEGORY_LABEL, METHOD_LABEL } from './templates'
 
 export function formatFaces(faces: readonly (0 | 1)[]): string {
@@ -20,6 +22,27 @@ export function formatCategory(category: QuestionCategory): string {
 
 export function formatSizhu(sizhu: Sizhu): string {
   return `${sizhu.year}年 ${sizhu.month}月 ${sizhu.day}日 ${sizhu.hour}时`
+}
+
+/** 起卦时间：按排盘时区输出墙上时刻并标注时区，不输出裸 UTC 时刻 */
+export function formatCastTime(castAt: string, timeZone: CastTimeZone = CAST_TIME_ZONE): string {
+  return `${formatZonedDateTime(castAt, timeZone.offsetMinutes)}（${formatZoneLabel(timeZone)}）`
+}
+
+/** 排盘时区标识 */
+export function formatCastZone(timeZone: CastTimeZone = CAST_TIME_ZONE): string {
+  return `${timeZone.id}（${formatUtcOffset(timeZone.offsetMinutes)}）`
+}
+
+/**
+ * 排盘规则声明。外部 AI 复核四柱时必须知道这些约定，否则会与提示词中的四柱得出不同结论。
+ */
+export function formatCastRules(): string[] {
+  return [
+    '排盘规则：年柱以立春、月柱以十二"节"的交节时刻为界，交节时刻取香港天文台公布值（UTC+8，分钟级）',
+    '排盘规则：23:00 起子时，且 23:00-23:59 不换日柱（晚子时不换日）',
+    '排盘规则：未做真太阳时校正，四柱按北京时间直接计算',
+  ]
 }
 
 export function formatYaoLine(line: YaoLine, changingLines: readonly LinePosition[]): string {

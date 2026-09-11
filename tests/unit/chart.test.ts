@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { buildChart } from '../../src/engines/najia/chart'
+import { beijing } from '../fixtures/beijing-time'
 
 // 固定起卦时间：2026-08-28 12:00 → 丙午年 丙申月 甲戌日 庚午时，旬空申酉
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 
 describe('buildChart 完整排盘（天风姤初爻动）', () => {
   const chart = buildChart([6, 7, 7, 7, 7, 7], CAST_AT)

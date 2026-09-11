@@ -6,6 +6,7 @@ import { ENGINE_VERSION } from '../../domain/versions'
 import {
   buildManualChart,
   clearLineOverride,
+  clearTimeDependentOverrides,
   lineFromRawValue,
   rawValueFromLine,
   rawValuesForHexagram,
@@ -16,7 +17,7 @@ import {
 } from './model'
 import { manualDraftStore, type ManualDraftSnapshot } from './manual-draft-store'
 
-export type ManualEditorStatus = 'idle' | 'auto-filled' | 'corrected' | 'saved' | 'error'
+export type ManualEditorStatus = 'idle' | 'auto-filled' | 'corrected' | 'time-updated' | 'saved' | 'error'
 
 export interface ManualEditorController {
   state: ManualEditorState
@@ -189,7 +190,9 @@ export function useManualEditor(): ManualEditorController {
   }, [])
 
   const setCastAt = useCallback((castAt: string) => {
-    setState((previous) => ({ ...previous, castAt }))
+    // 时间变了，受时间影响的覆盖（四柱、爻级旬空）必须一起失效，否则提示词里的时间与四柱会互相矛盾
+    setState((previous) => ({ ...previous, castAt, overrides: clearTimeDependentOverrides(previous.overrides) }))
+    setStatus('time-updated')
   }, [])
 
   const setSizhu = useCallback((sizhu: { year: string; month: string; day: string; hour: string }) => {

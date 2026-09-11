@@ -1,6 +1,6 @@
 import type { DivinationCase } from '../../domain/types'
 import { Disclaimer, HexagramLines } from '../../components'
-import { formatMethod } from '../../engines/prompt/formatter'
+import { formatCastTime, formatMethod } from '../../engines/prompt/formatter'
 
 export interface HeroCardProps {
   caseValue: DivinationCase
@@ -17,7 +17,7 @@ export function HeroCard({ caseValue, summary, disclaimers }: HeroCardProps) {
     <section className="hero-card" aria-label="卦象主卡">
       <p className="hero-card__question">{caseValue.question}</p>
       <p className="hero-card__meta">
-        {caseValue.castAt.slice(0, 16).replace('T', ' ')} · {formatMethod(caseValue.method)}
+        {formatCastTime(caseValue.castAt, caseValue.timeZone)} · {formatMethod(caseValue.method)}
       </p>
       <div className="hero-card__relation">
         <p className="review-panel__line">本卦：{chart.original.name}</p>

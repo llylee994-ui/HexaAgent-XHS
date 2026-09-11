@@ -7,8 +7,9 @@ import { createDraft } from '../../src/domain/factories'
 import { buildChart } from '../../src/engines/najia/chart'
 import App from '../../src/app/App'
 import { createCaseRepository } from '../../src/storage/case-db'
+import { beijing } from '../fixtures/beijing-time'
 
-const CAST_AT = new Date(2026, 7, 28, 12, 0)
+const CAST_AT = beijing('2026-08-28 12:00')
 const repository = createCaseRepository()
 
 async function putCase(overrides: Partial<DivinationCase> = {}): Promise<DivinationCase> {

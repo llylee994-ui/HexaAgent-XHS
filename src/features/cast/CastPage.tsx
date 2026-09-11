@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
+import { CAST_TIME_ZONE } from '../../domain/time-zone'
 import { useCaseSession } from '../../app/use-case-session'
 import type { PageFrameBinding } from '../../app/navigation'
 import { DETACHED_FRAME } from '../../app/navigation'
 import { ConfirmDialog, PageFrame, ProgressHeader, YaoStack } from '../../components'
 import { buildHexagram } from '../../engines/hexagram/engine'
+import { SUPPORTED_YEAR_RANGE } from '../../engines/calendar/solar-terms'
+import { parseZonedInput, toZonedInputValue } from '../../engines/calendar/zoned-time'
 import { QuestionStep } from './QuestionStep'
 import { MethodStep } from './MethodStep'
 import { CoinStage } from './CoinStage'
@@ -85,6 +88,24 @@ export function CastPage({ onCaseCreated, frame = DETACHED_FRAME }: CastPageProp
           ) : (
             <p className="review-panel__line">静卦</p>
           )}
+          <label className="field field--inline">
+            <span className="field__label">起卦时间（北京时间）</span>
+            <input
+              aria-label="起卦时间"
+              type="datetime-local"
+              min={`${SUPPORTED_YEAR_RANGE.fromYear}-01-01T00:00`}
+              max={`${SUPPORTED_YEAR_RANGE.toYear}-12-31T23:59`}
+              value={toZonedInputValue(session.castAt, CAST_TIME_ZONE.offsetMinutes)}
+              onChange={(event) => {
+                const iso = parseZonedInput(event.target.value, CAST_TIME_ZONE.offsetMinutes)
+                if (iso) session.setCastAt(iso)
+              }}
+            />
+          </label>
+          <p className="review-panel__line">起卦时间默认取六爻齐备（得卦）的时刻，如不准确可在此校正。</p>
+          <button type="button" className="btn btn--small" onClick={() => session.setCastAt(new Date().toISOString())}>
+            使用当前时间
+          </button>
           <button type="button" className="btn" onClick={() => setConfirmOpen(true)}>
             修改卦象
           </button>

@@ -61,6 +61,44 @@ describe('migrateCase', () => {
     expect(migrateCase(null).mode).toBe('readonly')
     expect(migrateCase('junk').mode).toBe('readonly')
   })
+
+  it('v1 记录迁移到 v2：补默认排盘时区并标记 assumed', () => {
+    const { timeZone: _dropped, ...withoutZone } = validCaseRecord()
+    void _dropped
+    const result = migrateCase({ ...withoutZone, schemaVersion: 1 })
+    expect(result.mode).toBe('writable')
+    if (result.mode === 'writable') {
+      expect(result.value.schemaVersion).toBe(2)
+      expect(result.value.timeZone).toEqual({
+        id: 'Asia/Shanghai',
+        label: '北京时间',
+        offsetMinutes: 480,
+        assumed: true,
+      })
+    }
+  })
+
+  it('v1 记录的排盘快照在迁移后逐字段不变（不重算旧卦例）', () => {
+    const chart = {
+      original: { name: '天风姤' },
+      sizhu: { year: '丙午', month: '丙申', day: '甲戌', hour: '庚午' },
+      xunKong: ['申', '酉'],
+    }
+    const { timeZone: _dropped, ...withoutZone } = validCaseRecord()
+    void _dropped
+    const result = migrateCase({
+      ...withoutZone,
+      schemaVersion: 1,
+      status: 'cast',
+      rawValues: [6, 7, 7, 7, 7, 7],
+      chart,
+    })
+    expect(result.mode).toBe('writable')
+    if (result.mode === 'writable') {
+      expect(result.value.chart).toEqual(chart)
+      expect(result.value.castAt).toBe('2026-08-28T04:00:00.000Z')
+    }
+  })
 })
 
 describe('toStorageError', () => {

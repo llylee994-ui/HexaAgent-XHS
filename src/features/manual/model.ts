@@ -56,7 +56,7 @@ export function rawValuesForHexagram(name: string): readonly RawYaoValue[] {
 export function buildManualChart(state: ManualEditorState): HexagramChart {
   const castAt = new Date(state.castAt)
   if (Number.isNaN(castAt.getTime())) throw new Error('起卦时间无效')
-  return buildChart(state.rawValues, castAt, state.overrides)
+  return buildChart(state.rawValues, state.castAt, state.overrides)
 }
 
 function issue(section: ManualValidationIssue['section'], message: string, field?: string, position?: LinePosition): ManualValidationIssue {
@@ -105,6 +105,25 @@ export function clearLineOverride(overrides: ChartOverrides, position: LinePosit
   const lines = { ...(overrides.lines ?? {}) }
   delete lines[position]
   return { ...overrides, lines }
+}
+
+/**
+ * 起卦时间变化后清除受时间影响的覆盖：四柱覆盖与爻级旬空覆盖（旬空按日柱推导）。
+ * 干支、六亲、六神、世应与伏神与时间无关，保留不动。
+ */
+export function clearTimeDependentOverrides(overrides: ChartOverrides): ChartOverrides {
+  const { sizhu: _discardedSizhu, lines: currentLines, ...rest } = overrides
+  void _discardedSizhu
+  const lines: Partial<Record<LinePosition, ChartLineOverrides>> = {}
+  for (const [position, patch] of Object.entries(currentLines ?? {})) {
+    if (!patch) continue
+    const { xunKong: _discardedXunKong, ...kept } = patch
+    void _discardedXunKong
+    if (Object.keys(kept).length > 0) {
+      lines[Number(position) as LinePosition] = kept
+    }
+  }
+  return Object.keys(lines).length > 0 ? { ...rest, lines } : { ...rest }
 }
 
 export type { ChartLineOverrides, ChartOverrides }
