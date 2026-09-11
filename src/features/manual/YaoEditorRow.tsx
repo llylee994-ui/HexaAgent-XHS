@@ -53,9 +53,12 @@ export function YaoEditorRow({ line, rawValue, override, open, onLineChange, onO
           <button type="button" className="btn btn--small" aria-label={`${visible}静`} aria-pressed={!current.changing} onClick={() => onLineChange({ changing: false })}>静</button>
           <button type="button" className="btn btn--small" aria-label={`${visible}动`} aria-pressed={current.changing} onClick={() => onLineChange({ changing: true })}>动</button>
         </span>
-        <select aria-label={`${visible}世应`} value={line.shiYing ?? ''} onChange={(event) => onOverrideChange({ shiYing: (event.target.value || null) as 'shi' | 'ying' | null })}>
-          <option value="">世应</option><option value="shi">世</option><option value="ying">应</option>
-        </select>
+        <label className="yao-editor-row__shi-ying">
+          <span>世应：</span>
+          <select aria-label={`${visible}世应`} value={line.shiYing ?? ''} onChange={(event) => onOverrideChange({ shiYing: (event.target.value || null) as 'shi' | 'ying' | null })}>
+            <option value="">无</option><option value="shi">世</option><option value="ying">应</option>
+          </select>
+        </label>
       </div>
       <div className="yao-editor-row__secondary">
         <label>六亲<select aria-label={`${visible}六亲`} value={line.liuqin} onChange={(event) => onOverrideChange({ liuqin: event.target.value })}>{LIUQIN.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>

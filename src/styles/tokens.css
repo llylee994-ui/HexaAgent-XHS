@@ -8,12 +8,14 @@
   --tea: #71816b;
   --earth: #9a7258;
   --line: rgba(36, 34, 31, 0.14);
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
+  --line-strong: rgba(36, 34, 31, 0.28);
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
   --tap-size: 44px;
   --radius-card: 24px;
+  --radius-button: 10px;
   --shadow-soft: 0 16px 48px rgba(60, 43, 28, 0.08);
   --motion-page: 220ms;
   --motion-control: 140ms;

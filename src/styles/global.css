@@ -106,15 +106,6 @@ button:disabled {
   letter-spacing: 0.16em;
 }
 
-h1 {
-  margin: 0;
-  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
-  font-size: clamp(3.5rem, 18vw, 6rem);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 0.95;
-}
-
 .welcome-copy {
   max-width: 18rem;
   margin: 24px 0 0;
@@ -146,7 +137,14 @@ h1 {
 }
 
 .page-frame__title {
+  min-width: 0;
+  margin: 0;
   overflow: hidden;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -194,6 +192,7 @@ h1 {
 
 .page__title--brand {
   font-size: clamp(3rem, 14vw, 4.5rem);
+  line-height: 0.95;
 }
 
 .page__subtitle {
@@ -559,6 +558,22 @@ button.coin {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.yao-editor-row__type-actions .btn[aria-pressed='true'] {
+  border-color: var(--cinnabar);
+  background: color-mix(in srgb, var(--cinnabar) 10%, white);
+  color: var(--cinnabar-dark);
+  box-shadow: inset 0 0 0 1px var(--cinnabar);
+  font-weight: 700;
+}
+
+.yao-editor-row__shi-ying {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
 }
 
 .yao-editor-row__secondary label,
