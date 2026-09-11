@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { createDraft } from '../../src/domain/factories'
 import type { AiAnswer, DivinationCase, PromptSnapshot } from '../../src/domain/types'
-import { buildChart } from '../../src/engines/najia/chart'
+import { buildChart, isSizhuOverridden } from '../../src/engines/najia/chart'
 import { createCaseRepository } from '../../src/storage/case-db'
 import { beijing } from '../fixtures/beijing-time'
 
@@ -28,6 +28,66 @@ function buildSavedCase(overrides: Partial<DivinationCase> = {}): DivinationCase
 
 function repo() {
   return createCaseRepository(new IDBFactory())
+}
+
+/** 直接往库里写原始记录，模拟旧版本（0.1.0）留在 IndexedDB 里的数据 */
+function seedRawRecord(factory: IDBFactory, record: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open('wenyao', 1)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains('cases')) {
+        db.createObjectStore('cases', { keyPath: 'id' })
+      }
+    }
+    request.onsuccess = () => {
+      const db = request.result
+      const transaction = db.transaction('cases', 'readwrite')
+      transaction.objectStore('cases').put(record)
+      transaction.oncomplete = () => {
+        db.close()
+        resolve()
+      }
+      transaction.onerror = () => reject(transaction.error)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+function readRawRecord(factory: IDBFactory, id: string): Promise<Record<string, unknown> | undefined> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open('wenyao', 1)
+    request.onsuccess = () => {
+      const db = request.result
+      const store = db.transaction('cases', 'readonly').objectStore('cases')
+      const get = store.get(id)
+      get.onsuccess = () => {
+        db.close()
+        resolve(get.result as Record<string, unknown> | undefined)
+      }
+      get.onerror = () => reject(get.error)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+/**
+ * 一条 0.1.0 形态的记录：schemaVersion 1、engineVersion 0.1.0、没有 timeZone，
+ * 且四柱快照用的是当时的固定日期表（2026 白露被算在 9/8，所以 9/7 23:00 的月柱是丙申）。
+ */
+function legacyV1Record(): Record<string, unknown> {
+  const value = buildSavedCase({
+    castAt: beijing('2026-09-07 23:00').toISOString(),
+    title: '旧版卦例',
+  })
+  const { timeZone: _timeZone, ...withoutTimeZone } = value
+  void _timeZone
+  return {
+    ...withoutTimeZone,
+    schemaVersion: 1,
+    engineVersion: '0.1.0',
+    chart: { ...value.chart!, sizhu: { ...value.chart!.sizhu, month: '丙申' } },
+  }
 }
 
 describe('caseRepository 增删改查', () => {
@@ -137,5 +197,73 @@ describe('caseRepository 多个 AI 回答与版本复制', () => {
     // 原记录不受影响，副本已入库
     expect(await repository.get(value.id)).toEqual(value)
     expect((await repository.list()).map((v) => v.id)).toContain(copy.id)
+  })
+})
+
+/**
+ * 升级兼容：用户升级到 0.2.0 后，库里已有的 0.1.0 记录必须照常读得出来。
+ * 这正是"覆盖更新后本地数据看起来丢了"的真实成因，因此按下述行为固化。
+ */
+describe('旧版本（0.1.0）记录升级后的读取', () => {
+  it('v1 记录迁移后可读可写：补时区、快照不被改写', async () => {
+    const factory = new IDBFactory()
+    const legacy = legacyV1Record()
+    await seedRawRecord(factory, legacy)
+    const repository = createCaseRepository(factory)
+
+    const entries = await repository.listEntries()
+    expect(entries).toHaveLength(1)
+    const entry = entries[0]
+    expect(entry.mode).toBe('writable')
+    if (entry.mode !== 'writable') return
+
+    // 迁移只补元数据
+    expect(entry.value.schemaVersion).toBe(2)
+    expect(entry.value.timeZone).toEqual({
+      id: 'Asia/Shanghai',
+      label: '北京时间',
+      offsetMinutes: 480,
+      assumed: true,
+    })
+    // 内容与旧排盘快照原样保留
+    expect(entry.value.title).toBe('旧版卦例')
+    expect(entry.value.question).toBe('换工作能否顺利')
+    expect(entry.value.chart).toEqual(legacy.chart)
+    expect(entry.value.chart?.sizhu.month).toBe('丙申')
+    // 旧快照确实与新版重算不同（白露 22:41 之后应属丁酉月），但升级不重算历史卦例
+    const recomputed = buildChart(entry.value.rawValues, entry.value.castAt)
+    expect(recomputed.sizhu.month).toBe('丁酉')
+
+    // 旧记录仍可继续使用：改标题后写回，快照依旧不变
+    await repository.put({ ...entry.value, title: '改过标题的旧卦例' })
+    const updated = await repository.get(legacy.id as string)
+    expect(updated?.title).toBe('改过标题的旧卦例')
+    expect(updated?.chart).toEqual(legacy.chart)
+  })
+
+  it('get 读旧记录同样返回迁移结果', async () => {
+    const factory = new IDBFactory()
+    const legacy = legacyV1Record()
+    await seedRawRecord(factory, legacy)
+    const repository = createCaseRepository(factory)
+
+    const fetched = await repository.get(legacy.id as string)
+    expect(fetched?.schemaVersion).toBe(2)
+    expect(fetched?.timeZone?.assumed).toBe(true)
+    // 迁移件不冒充"人工校正"
+    expect(isSizhuOverridden(fetched!.castAt, fetched!.chart, fetched!.timeZone)).toBe(false)
+  })
+
+  it('迁移校验失败的旧记录以只读保留，原始数据不从库里删除', async () => {
+    const factory = new IDBFactory()
+    await seedRawRecord(factory, { id: 'broken-legacy', schemaVersion: 1, question: 123 })
+    const repository = createCaseRepository(factory)
+
+    const entries = await repository.listEntries()
+    expect(entries).toHaveLength(1)
+    expect(entries[0].mode).toBe('readonly')
+    // 列表里不出现可写条目，但原始记录仍在
+    expect(await repository.list()).toEqual([])
+    expect(await readRawRecord(factory, 'broken-legacy')).toMatchObject({ question: 123 })
   })
 })

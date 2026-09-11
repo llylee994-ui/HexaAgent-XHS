@@ -47,6 +47,25 @@ describe('draftStore', () => {
     expect(draftStore.load()).toEqual(draft)
   })
 
+  it('0.1.0 写入的旧版草稿（schemaVersion 1、无 timeZone）仍能恢复，不被清理', () => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    const { timeZone: _timeZone, ...legacy } = buildDraft([7, 7, 7])
+    void _timeZone
+    localStorage.setItem('wenyao:active-draft', JSON.stringify({ ...legacy, schemaVersion: 1 }))
+
+    const loaded = draftStore.load()
+    expect(loaded).not.toBeNull()
+    expect(loaded?.schemaVersion).toBe(2)
+    expect(loaded?.timeZone).toEqual({
+      id: 'Asia/Shanghai',
+      label: '北京时间',
+      offsetMinutes: 480,
+      assumed: true,
+    })
+    expect(loaded?.rawValues).toEqual([7, 7, 7])
+    expect(loaded?.question).toBe('工作调动能否顺利')
+  })
+
   it('损坏的 JSON 会被清理并返回 null', () => {
     vi.stubGlobal('localStorage', memoryStorage())
     localStorage.setItem('wenyao:active-draft', '{not-json')
@@ -54,8 +73,7 @@ describe('draftStore', () => {
     expect(localStorage.getItem('wenyao:active-draft')).toBeNull()
   })
 
-  it('结构不合法的草稿同样清理并返回 null', () => {
-    vi.stubGlobal('localStorage', memoryStorage())
+  it('结构不合法的草稿同样清理并返回 null', () => {    vi.stubGlobal('localStorage', memoryStorage())
     localStorage.setItem('wenyao:active-draft', JSON.stringify({ question: 123 }))
     expect(draftStore.load()).toBeNull()
     expect(localStorage.getItem('wenyao:active-draft')).toBeNull()
