@@ -3,6 +3,29 @@
 > 对照文档：`docs/superpowers/plans/2026-08-27-xiaohongshu-hexa-tool-implementation.md`
 > 记录日期：2026-08-30 · 结论：**Task 1–10 全部完成；经典文本参考增量亦已完成。最终验收清单 9 项通过、1 项基本通过**（详见文末）。
 
+## 2026-09-11 时间基准与节气精度修复
+
+对照计划：`docs/superpowers/plans/2026-09-11-timezone-and-solar-term-accuracy.md`（四项已确认缺陷）。
+
+| 缺陷 | 修复 |
+| --- | --- |
+| 结果页/历史页/回答时间固定早 8 小时（直接截取 ISO 前 16 位） | 新增 `engines/calendar/zoned-time.ts` 统一格式化，三处展示改用北京时间并标注时区 |
+| 提示词输出裸 UTC 时刻，与按设备本地算出的四柱冲突 | 提示词输出 `起卦时间：YYYY-MM-DD HH:mm（北京时间 UTC+8）`、`排盘时区` 与三行排盘规则声明；专业版 JSON 增加 `castAtLocal`、`timeZone`、`rules`、`sizhuOverridden`；四柱被人工校正时文字与 JSON 都如实标注 |
+| 节气用固定公历日期（2026 年有 5 个"节"整整差一天，且全部缺交节时刻） | 新增 `engines/calendar/solar-terms.ts` + 1899–2100 数据表，年月柱改为按交节时刻比较；与香港天文台 2019–2028 年 120 项逐项核对，最大偏差 60 秒 |
+| 排盘依赖宿主时区（UTC 环境得到不同四柱） | 引擎改为「绝对时刻 + 时区偏移」输入，禁止读取宿主本地字段；数据模型增加 `timeZone`（`schemaVersion` 2，v1 迁移补默认值并标记 `assumed`，快照不改写） |
+
+顺带修正的取时与一致性行为：
+
+- 现场摇卦的起卦时间改为**得卦时刻**（六爻齐备那一刻），确认页提供人工校正入口与"使用当前时间"；开始时刻另记 `castStartedAt`，不参与排盘。
+- 手动排盘改时间时自动清除受时间影响的覆盖（四柱、爻级旬空）并在状态区提示"已按新时间重算"，不再需要用户记得点"使用起卦时间重新计算"。
+- 手动排盘的 `datetime-local` 按北京时间解释与回填，并限制在 1900–2100。
+
+版本号：`schemaVersion` 1 → 2、`engineVersion` 0.1.0 → 0.2.0、`promptVersion` 2.0.0 → 2.1.0（`docs/architecture.md` 中原本记为 1.0.0 的 promptVersion 属文档漂移，已一并修正）。
+
+门禁：`npm test` 265 项在 `TZ=Asia/Shanghai`、`TZ=UTC`、`TZ=America/New_York` 三组环境下全部通过且结果一致；`npm run lint` 0 问题；`npm run build` 扫描 `0 violations`；`npx playwright test` 17 项通过（含新增 `time-zone.spec.ts` 的 UTC 设备用例）；产物体积 371,573 字节（+21,866 原始 / +9,249 gzip）。
+
+未做的事：`release/` 中已上传小红书的 `wenyao-xhs-0.1.0.zip` 未重新打包，也未改动 `release-summary.md`；需要提审新版本时再走 `docs/xhs-review-guide.md` 第 1 节流程。
+
 ## 总览
 
 | 任务 | 内容 | 提交 | 状态 |

@@ -27,6 +27,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-xhs.ps1 -Ico
 - [ ] 无 `type="module"`、模块语法、内联脚本、`eval`、`new Function`、Worker、Service Worker、WASM、iframe、`download`、`target=_blank`
 - [ ] E2E `offline.spec.ts` 通过（零外部请求 + 离线重载可用）
 - [ ] `release/release-summary.md` 显示 ZIP 小于 2MB，根入口、扩展名和逐文件哈希全部通过
+- [ ] 产物体积记录：节气数据表带来约 22KB 原始 / 9KB gzip 增量，仍远低于 2MB 上限
 
 ## 3. 能力声明
 
@@ -55,8 +56,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-xhs.ps1 -Ico
 10. 非首页页面顶部返回按钮可回到上一层；浏览器系统返回不会退出应用，历史搜索词和滚动位置可恢复。
 11. 专业手动排盘的搜索框支持键盘上下选择与 Escape 收起，四柱与六爻字段均可触达，页面不出现 6/7/8/9 原始数值输入。
 12. 生成专业版提示词后检查可读排盘与 fenced JSON 同源，JSON 包含 `original`、`changed` 和 `overriddenFields`；精简版不出现 JSON 块。
-13. 用键盘检查 focus ring、阴阳/动静的 pressed 状态、伏神 disclosure 和保存反馈；“恢复全部自动值”必须先二次确认。
+13. 用键盘检查 focus ring、阴阳/动静的 pressed 状态、伏神 disclosure 和保存反馈；"恢复全部自动值"必须先二次确认。
 14. 在系统减少动态效果设置下检查无页面位移；320px、375px、430px 宽度均无横向滚动，固定纸张主题下文字对比清晰。
+15. **时区**：把设备/容器时区改成 UTC 或其它时区，重新起卦，结果卡时间仍显示北京时间（带"北京时间 UTC+8"标注）且与手动排盘的时间输入一致；同一时刻的四柱不随时区改变。
+16. **节气边界与范围**：把手动排盘时间改到交节前后（例如 2026-09-07 22:40 与 22:41，白露在 22:41）检查月柱随之从丙申变丁酉；把时间改到 1899 或 2101 年时给出"超出支持范围"提示且不生成结果。
 
 ## 5. 审核资料要点
 
@@ -68,3 +71,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-xhs.ps1 -Ico
 ## 6. 版本记录
 
 每次发版在 `src/domain/versions.ts` 更新 `engineVersion`，如数据结构变化需同步提升 `schemaVersion` 并在 `src/storage/migrations.ts` 添加迁移函数。
+
+节气数据表不需要手工维护：如确需重新生成，`npm i --no-save lunar-javascript@1.7.7 && node scripts/generate-solar-terms.mjs`，随后 `npm test` 会强制校验它与香港天文台公布值的偏差不超过 60 秒。
