@@ -14,12 +14,24 @@ test('controls expose focus, pressed and saved feedback', async ({ page }) => {
   const yang = page.getByRole('button', { name: '阳', exact: true }).first()
   await yang.click()
   await expect(yang).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => yang.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none')
   await page.keyboard.press('Shift+Tab')
   await page.keyboard.press('Tab')
   await expect.poll(() => yang.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none')
 
   await page.getByRole('button', { name: '保存草稿' }).click()
   await expect(page.getByText('草稿已保存')).toBeVisible()
+})
+
+test('shi-ying controls show a label and use 无 for an empty assignment', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '手动排盘', exact: true }).click()
+  await page.getByLabel('你的问题').fill('世应选项检查')
+  await page.getByLabel('问题类别').selectOption('other')
+  await page.getByRole('button', { name: '下一步' }).click()
+
+  await expect(page.locator('.yao-editor-row__shi-ying')).toHaveCount(6)
+  await expect(page.getByLabel('五爻世应').locator('option:checked')).toHaveText('无')
 })
 
 test('reduced motion removes page animation and control transitions', async ({ page }) => {
