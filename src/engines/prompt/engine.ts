@@ -52,7 +52,7 @@ function conciseBody(caseValue: DivinationCase): string[] {
     sizhuLine(caseValue),
     `月建：${chart.sizhu.month[1]} 日辰：${chart.sizhu.day[1]}`,
     `旬空：${chart.xunKong[0]}${chart.xunKong[1]}`,
-    `用神：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,
+    `主用神候选：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,
   ]
 }
 
@@ -73,7 +73,7 @@ function professionalBody(caseValue: DivinationCase): string[] {
     sizhuLine(caseValue),
     `月建：${chart.sizhu.month[1]} 日辰：${chart.sizhu.day[1]}`,
     `旬空：${chart.xunKong[0]}${chart.xunKong[1]}`,
-    `用神：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,
+    `主用神候选：${YONGSHEN_BY_CATEGORY[caseValue.category].primary.join(' / ')}`,
     `说明：${YONGSHEN_BY_CATEGORY[caseValue.category].note ?? ''}`,
   )
 

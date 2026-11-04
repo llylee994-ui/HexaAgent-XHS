@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createDraft } from '../../src/domain/factories'
-import type { DivinationCase } from '../../src/domain/types'
+import type { DivinationCase, QuestionCategory } from '../../src/domain/types'
+import { PROMPT_VERSION } from '../../src/domain/versions'
 import { buildChart } from '../../src/engines/najia/chart'
 import { generatePrompt } from '../../src/engines/prompt/engine'
 import { buildStructuredPromptData } from '../../src/engines/prompt/structured'
@@ -9,11 +10,11 @@ import { beijing } from '../fixtures/beijing-time'
 
 const CAST_AT = beijing('2026-08-28 12:00')
 
-function buildCase(): DivinationCase {
+function buildCase(category: QuestionCategory = 'career'): DivinationCase {
   const rawValues = [6, 7, 7, 7, 7, 7] as const
   const draft = createDraft({
     question: '跳槽顺利吗',
-    category: 'career',
+    category,
     castAt: CAST_AT.toISOString(),
     method: 'manual',
   })
@@ -46,6 +47,18 @@ describe('structured professional prompt data', () => {
 
   it('concise prompt does not include the structured JSON block', () => {
     expect(generatePrompt(buildCase(), 'concise').content).not.toContain('```json')
+  })
+
+  it('keeps the stable relationship category and prompt version in structured JSON', () => {
+    const value = buildCase('children')
+    const structured = buildStructuredPromptData(value)
+    expect(structured.category).toBe('children')
+    expect(structured.promptVersion).toBe(PROMPT_VERSION)
+
+    const content = generatePrompt(value, 'professional').content
+    const json = JSON.parse(content.split('```json\n')[1].split('\n```')[0])
+    expect(json.category).toBe('children')
+    expect(json.promptVersion).toBe(PROMPT_VERSION)
   })
 
   it('四柱被人工覆盖时结构化数据如实标记', () => {
