@@ -1,0 +1,31 @@
+import { expect, test } from '@playwright/test'
+
+test('现场摇卦可选择子女类别并在提示词中保留候选用神', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '现场摇卦' }).click()
+  await page.getByLabel('你的问题').fill('孩子这次考试准备得如何')
+  await page.getByLabel('问题类别').selectOption('children')
+  await page.getByRole('button', { name: '下一步' }).click()
+  await page.getByRole('button', { name: '模拟铜钱摇卦' }).click()
+  for (let i = 0; i < 6; i += 1) await page.getByRole('button', { name: '摇动铜钱' }).click()
+  await page.getByRole('button', { name: '生成结果' }).click()
+  await page.getByRole('button', { name: '生成精简版提示词' }).click()
+  await expect(page.getByLabel('提示词内容')).toContainText('类别：子女／晚辈')
+  await expect(page.getByLabel('提示词内容')).toContainText('主用神候选：子孙')
+})
+
+test('手动排盘可选择兄弟姐妹类别并生成专业提示词', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '手动排盘' }).click()
+  await page.getByLabel('你的问题').fill('兄弟这次换工作是否顺利')
+  await page.getByLabel('问题类别').selectOption('siblings')
+  await page.getByRole('button', { name: '下一步' }).click()
+  await page.getByRole('combobox', { name: '搜索卦名' }).fill('泰')
+  await page.getByRole('option', { name: '地天泰' }).click()
+  await page.getByRole('button', { name: '生成正式结果' }).click()
+  await page.getByRole('button', { name: '生成专业版提示词' }).click()
+  const prompt = page.getByLabel('提示词内容')
+  await expect(prompt).toContainText('类别：兄弟姐妹／同辈')
+  await expect(prompt).toContainText('主用神候选：兄弟')
+  await expect(prompt).toContainText('辅助六亲')
+})
