@@ -218,7 +218,7 @@ describe('旧版本（0.1.0）记录升级后的读取', () => {
     if (entry.mode !== 'writable') return
 
     // 迁移只补元数据
-    expect(entry.value.schemaVersion).toBe(2)
+    expect(entry.value.schemaVersion).toBe(3)
     expect(entry.value.timeZone).toEqual({
       id: 'Asia/Shanghai',
       label: '北京时间',
@@ -248,7 +248,7 @@ describe('旧版本（0.1.0）记录升级后的读取', () => {
     const repository = createCaseRepository(factory)
 
     const fetched = await repository.get(legacy.id as string)
-    expect(fetched?.schemaVersion).toBe(2)
+    expect(fetched?.schemaVersion).toBe(3)
     expect(fetched?.timeZone?.assumed).toBe(true)
     // 迁移件不冒充"人工校正"
     expect(isSizhuOverridden(fetched!.castAt, fetched!.chart, fetched!.timeZone)).toBe(false)

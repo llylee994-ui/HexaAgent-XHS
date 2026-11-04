@@ -62,19 +62,46 @@ describe('migrateCase', () => {
     expect(migrateCase('junk').mode).toBe('readonly')
   })
 
-  it('v1 记录迁移到 v2：补默认排盘时区并标记 assumed', () => {
+  it('v1 记录逐级迁移到当前版本：补默认排盘时区并标记 assumed', () => {
     const { timeZone: _dropped, ...withoutZone } = validCaseRecord()
     void _dropped
     const result = migrateCase({ ...withoutZone, schemaVersion: 1 })
     expect(result.mode).toBe('writable')
     if (result.mode === 'writable') {
-      expect(result.value.schemaVersion).toBe(2)
+      expect(result.value.schemaVersion).toBe(3)
       expect(result.value.timeZone).toEqual({
         id: 'Asia/Shanghai',
         label: '北京时间',
         offsetMinutes: 480,
         assumed: true,
       })
+    }
+  })
+
+  it('v2 记录迁移到 v3 时只更新 schemaVersion，保留类别和快照', () => {
+    const chart = { marker: 'keep-this-chart-byte-for-byte' }
+    const prompts = [{
+      id: 'legacy-prompt',
+      variant: 'concise',
+      version: '2.1.1',
+      content: 'keep-this-prompt-byte-for-byte',
+      createdAt: '2026-08-28T04:01:00.000Z',
+    }]
+    const source = {
+      ...validCaseRecord(),
+      schemaVersion: 2,
+      status: 'cast',
+      category: 'career',
+      chart,
+      prompts,
+    }
+    const result = migrateCase(source)
+    expect(result.mode).toBe('writable')
+    if (result.mode === 'writable') {
+      expect(result.value.schemaVersion).toBe(3)
+      expect(result.value.category).toBe('career')
+      expect(result.value.chart).toEqual(chart)
+      expect(result.value.prompts).toEqual(prompts)
     }
   })
 

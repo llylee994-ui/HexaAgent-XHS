@@ -55,7 +55,7 @@ describe('draftStore', () => {
 
     const loaded = draftStore.load()
     expect(loaded).not.toBeNull()
-    expect(loaded?.schemaVersion).toBe(2)
+    expect(loaded?.schemaVersion).toBe(3)
     expect(loaded?.timeZone).toEqual({
       id: 'Asia/Shanghai',
       label: '北京时间',
