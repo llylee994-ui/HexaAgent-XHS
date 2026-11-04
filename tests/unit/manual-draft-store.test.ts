@@ -29,6 +29,12 @@ describe('手动排盘草稿存储', () => {
     expect(manualDraftStore.load()).toEqual(snapshot)
   })
 
+  it('round-trips a relative category', () => {
+    const snapshot = buildManualDraft({ category: 'children' })
+    manualDraftStore.save(snapshot)
+    expect(manualDraftStore.load()?.category).toBe('children')
+  })
+
   it('leaves an invalid stored draft untouched by the current case database', () => {
     localStorage.setItem('wenyao:manual-editor-draft:v1', '{bad json')
     expect(manualDraftStore.load()).toBeNull()

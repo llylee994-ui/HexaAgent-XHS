@@ -73,6 +73,18 @@ describe('parseBackup', () => {
     expect(parsed.value.rejectedLines).toBe(0)
   })
 
+  it('round-trips a relative category', () => {
+    const entry = writableEntry()
+    expect(entry.mode).toBe('writable')
+    if (entry.mode !== 'writable') return
+    const value = { ...entry.value, category: 'children' as const }
+    const text = formatBackup([{ mode: 'writable', value }], { exportedAt: value.updatedAt })
+    const parsed = parseBackup(text)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.value.records[0]?.category).toBe('children')
+  })
+
   it('拒绝不是备份的文本', () => {
     const parsed = parseBackup('{"id":"x"}')
     expect(parsed.ok).toBe(false)

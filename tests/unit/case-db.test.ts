@@ -99,6 +99,13 @@ describe('caseRepository 增删改查', () => {
     expect(await repository.get('missing')).toBeNull()
   })
 
+  it('round-trips a relative category', async () => {
+    const repository = repo()
+    const value = buildSavedCase({ category: 'siblings' })
+    await repository.put(value)
+    expect((await repository.get(value.id))?.category).toBe('siblings')
+  })
+
   it('list 按更新时间倒序', async () => {
     const repository = repo()
     const older = buildSavedCase({ updatedAt: '2026-08-01T00:00:00.000Z' })

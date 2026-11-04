@@ -47,6 +47,13 @@ describe('draftStore', () => {
     expect(draftStore.load()).toEqual(draft)
   })
 
+  it('round-trips a relative category', () => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    const draft = { ...buildDraft(), category: 'parents' as const }
+    draftStore.save(draft)
+    expect(draftStore.load()?.category).toBe('parents')
+  })
+
   it('0.1.0 写入的旧版草稿（schemaVersion 1、无 timeZone）仍能恢复，不被清理', () => {
     vi.stubGlobal('localStorage', memoryStorage())
     const { timeZone: _timeZone, ...legacy } = buildDraft([7, 7, 7])
