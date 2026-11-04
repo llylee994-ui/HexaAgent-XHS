@@ -11,11 +11,11 @@ const CAST_AT = beijing('2026-08-28 12:00')
 
 const ALL_CATEGORIES: QuestionCategory[] = [
   'career', 'wealth', 'relationship', 'study', 'health',
-  'dispute', 'travel', 'lost-item', 'other',
+  'children', 'parents', 'siblings', 'dispute', 'travel', 'lost-item', 'other',
 ]
 
 describe('类别用神映射', () => {
-  it('九类问题都有候选用神', () => {
+  it('十二类问题都有候选用神', () => {
     for (const category of ALL_CATEGORIES) {
       const spec = YONGSHEN_BY_CATEGORY[category]
       expect(spec.primary.length > 0 || spec.note, category).toBeTruthy()
@@ -28,6 +28,16 @@ describe('类别用神映射', () => {
     expect(spec.primary).toContain('妻财')
     expect(spec.note).toContain('确认')
     expect(spec.note).not.toMatch(/男|女|丈夫|妻子/)
+  })
+
+  it.each([
+    ['children', '子孙'],
+    ['parents', '父母'],
+    ['siblings', '兄弟'],
+  ] as const)('%s uses %s as its primary candidate', (category, liuqin) => {
+    expect(YONGSHEN_BY_CATEGORY[category].primary).toEqual([liuqin])
+    expect(YONGSHEN_BY_CATEGORY[category].note).toContain('主用神候选')
+    expect(YONGSHEN_BY_CATEGORY[category].note).toContain('辅助六亲')
   })
 })
 
@@ -54,6 +64,23 @@ describe('规则顺序与依据', () => {
     const visibility = result.observations.find((o) => o.ruleId === 'yongshen-visibility')
     expect(visibility!.observation).toContain('多现')
     expect(visibility!.linePositions).toEqual([1, 4])
+  })
+
+  it('新增类别沿用现有用神出现、伏藏和多现规则', () => {
+    const children = interpret(buildChart([7, 7, 7, 7, 7, 7], CAST_AT), 'children')
+      .observations.find((item) => item.ruleId === 'yongshen-visibility')!
+    expect(children.observation).toContain('出现')
+    expect(children.linePositions).toEqual([1])
+
+    const parents = interpret(buildChart([7, 8, 8, 8, 8, 8], CAST_AT), 'parents')
+      .observations.find((item) => item.ruleId === 'yongshen-visibility')!
+    expect(parents.observation).toContain('伏藏')
+    expect(parents.linePositions).toEqual([2])
+
+    const siblings = interpret(buildChart([6, 7, 7, 7, 7, 7], CAST_AT), 'siblings')
+      .observations.find((item) => item.ruleId === 'yongshen-visibility')!
+    expect(siblings.observation).toContain('多现')
+    expect(siblings.linePositions).toEqual([3, 5])
   })
 
   it('月日生扶冲克：震为雷官鬼申金得日辰戌土相生', () => {
@@ -146,5 +173,14 @@ describe('高风险类别提示', () => {
     const careerDisclaimers = interpret(chart, 'career').disclaimers.join()
     expect(careerDisclaimers).toContain('娱乐参考')
     expect(careerDisclaimers).not.toContain('医疗')
+  })
+
+  it.each(['children', 'parents', 'siblings'] as const)('%s keeps compound-risk guidance', (category) => {
+    const chart = buildChart([7, 7, 7, 7, 7, 7], CAST_AT)
+    const text = interpret(chart, category).disclaimers.join('\n')
+    expect(text).toContain('健康')
+    expect(text).toContain('法律')
+    expect(text).toContain('财务')
+    expect(text).toContain('不能替代专业意见')
   })
 })
