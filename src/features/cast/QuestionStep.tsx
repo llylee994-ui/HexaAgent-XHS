@@ -44,6 +44,7 @@ export function QuestionStep({
         <span className="field__label">问题类别</span>
         <select
           name="category"
+          aria-describedby="question-category-hint"
           value={category}
           onChange={(event) => setCategory(event.target.value as QuestionCategory | '')}
         >
@@ -55,6 +56,7 @@ export function QuestionStep({
           ))}
         </select>
       </label>
+      <p id="question-category-hint" className="hint">类别用于推荐主用神候选，具体仍需结合问题确认。</p>
       <label className="field">
         <span className="field__label">备注（可选）</span>
         <input
