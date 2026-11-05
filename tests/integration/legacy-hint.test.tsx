@@ -77,7 +77,7 @@ describe('旧版卦例的时区假设提示', () => {
     expect(screen.getAllByText(LEGACY_HINT)).toHaveLength(1)
 
     const stored = await repository.get(legacy.id)
-    expect(stored?.schemaVersion).toBe(2)
+    expect(stored?.schemaVersion).toBe(3)
     expect(stored?.timeZone?.assumed).toBe(true)
     expect(stored?.chart).toEqual(legacy.chart)
   })

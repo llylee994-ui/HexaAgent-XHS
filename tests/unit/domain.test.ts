@@ -108,6 +108,28 @@ describe('validateCase', () => {
     expect(validateCase(draft)).toEqual({ ok: true })
   })
 
+  it.each(['children', 'parents', 'siblings'] as const)('accepts the %s relationship category', (category) => {
+    const draft = createDraft({
+      question: '所问亲属近况如何',
+      category,
+      castAt,
+      method: 'manual',
+    })
+    expect(validateCase(draft)).toEqual({ ok: true })
+  })
+
+  it('still rejects an unknown relationship category', () => {
+    const draft = createDraft({
+      question: '所问亲属近况如何',
+      category: 'other',
+      castAt,
+      method: 'manual',
+    })
+    const result = validateCase({ ...draft, category: 'friend' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.issues).toContainEqual({ path: 'category', message: '问题类别无效' })
+  })
+
   it('reports invalid raw values and more than six lines', () => {
     const draft = createDraft({
       question: '测试输入',

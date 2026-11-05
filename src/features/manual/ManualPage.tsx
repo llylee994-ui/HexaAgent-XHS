@@ -4,6 +4,7 @@ import type { PageFrameBinding } from '../../app/navigation'
 import { DETACHED_FRAME } from '../../app/navigation'
 import { ConfirmDialog, PageFrame } from '../../components'
 import { QuestionStep } from '../cast/QuestionStep'
+import { QUESTION_CATEGORY_OPTIONS } from '../shared/categories'
 import { HexagramSearch } from './HexagramSearch'
 import { ManualValidationSummary } from './ManualValidationSummary'
 import { SizhuEditor } from './SizhuEditor'
@@ -72,11 +73,14 @@ export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPage
           </label>
           <label className="field">
             <span className="field__label">问题类别</span>
-            <select aria-label="问题类别" value={controller.state.category} onChange={(event) => controller.setQuestion(controller.state.question, event.target.value as typeof controller.state.category, controller.state.note)}>
+            <select aria-label="问题类别" aria-describedby="question-category-hint" value={controller.state.category} onChange={(event) => controller.setQuestion(controller.state.question, event.target.value as typeof controller.state.category, controller.state.note)}>
               <option value="">请选择类别</option>
-              <option value="career">事业/求职</option><option value="wealth">财运/交易</option><option value="relationship">感情/婚姻</option><option value="study">学业/考试</option><option value="health">健康</option><option value="dispute">官司/纠纷</option><option value="travel">出行</option><option value="lost-item">失物</option><option value="other">其他</option>
+              {QUESTION_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </label>
+          <p id="question-category-hint" className="hint">类别用于推荐主用神候选，具体仍需结合问题确认。</p>
           <label className="field">
             <span className="field__label">补充说明</span>
             <textarea aria-label="补充说明" value={controller.state.note} onChange={(event) => controller.setQuestion(controller.state.question, controller.state.category, event.target.value)} rows={2} />

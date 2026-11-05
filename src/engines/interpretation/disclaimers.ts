@@ -1,4 +1,6 @@
 const BASE_DISCLAIMER = '本工具仅供传统文化研究与娱乐参考，不构成任何专业建议或结果承诺。'
+const RELATIVE_RISK_DISCLAIMER =
+  '如问题涉及健康、法律或财务事项，请咨询相应专业人士，卦象内容不能替代专业意见。'
 
 /** 按问题类别输出的免责与提示文案；健康、法律、财务必须醒目提示 */
 export function disclaimersFor(category: string): readonly string[] {
@@ -18,6 +20,10 @@ export function disclaimersFor(category: string): readonly string[] {
         BASE_DISCLAIMER,
         '财务与投资决策请咨询持牌专业人士，卦象内容不能替代专业财务建议。',
       ]
+    case 'children':
+    case 'parents':
+    case 'siblings':
+      return [BASE_DISCLAIMER, RELATIVE_RISK_DISCLAIMER]
     default:
       return [BASE_DISCLAIMER]
   }

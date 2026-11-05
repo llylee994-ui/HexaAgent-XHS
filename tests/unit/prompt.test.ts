@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDraft } from '../../src/domain/factories'
-import type { CoinThrow, DivinationCase } from '../../src/domain/types'
+import type { CoinThrow, DivinationCase, QuestionCategory } from '../../src/domain/types'
 import { PROMPT_VERSION } from '../../src/domain/versions'
 import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
@@ -9,11 +9,11 @@ import { beijing } from '../fixtures/beijing-time'
 
 const CAST_AT = beijing('2026-08-28 12:00')
 
-function buildCase(): DivinationCase {
+function buildCase(category: QuestionCategory = 'career'): DivinationCase {
   const rawValues = [6, 7, 7, 7, 7, 7] as const
   const draft = createDraft({
     question: '跳槽顺利吗',
-    category: 'career',
+    category,
     castAt: CAST_AT.toISOString(),
     method: 'simulated-coins',
   })
@@ -28,7 +28,7 @@ function buildCase(): DivinationCase {
       rawValue,
     })),
     chart,
-    observations: interpret(chart, 'career').observations,
+    observations: interpret(chart, category).observations,
   }
 }
 
@@ -147,5 +147,20 @@ describe('generatePrompt 专业版', () => {
     expect(content).toContain('健康、法律和财务')
     const numbered = content.split('\n').filter((line) => /^\d\./.test(line.trim()))
     expect(numbered).toHaveLength(7)
+  })
+})
+
+describe('generatePrompt 人物关系类别', () => {
+  it.each([
+    ['children', '子女／晚辈', '子孙'],
+    ['parents', '父母／长辈', '父母'],
+    ['siblings', '兄弟姐妹／同辈', '兄弟'],
+  ] as const)('%s prompt exposes a candidate instead of a final yongshen', (category, label, liuqin) => {
+    for (const variant of ['concise', 'professional'] as const) {
+      const content = generatePrompt(buildCase(category), variant).content
+      expect(content).toContain(`类别：${label}`)
+      expect(content).toContain(`主用神候选：${liuqin}`)
+      expect(content).not.toMatch(/\n用神：/)
+    }
   })
 })

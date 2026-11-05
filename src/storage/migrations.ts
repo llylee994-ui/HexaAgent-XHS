@@ -16,6 +16,11 @@ const MIGRATIONS: Partial<Record<number, MigrationStep>> = {
     schemaVersion: 2,
     timeZone: { ...CAST_TIME_ZONE, assumed: true },
   }),
+  // v2 → v3：只扩展问题类别枚举，旧记录内容和快照保持原样。
+  2: (record) => ({
+    ...record,
+    schemaVersion: 3,
+  }),
 }
 
 function readonly(raw: unknown, reason: string): MigrationResult {
