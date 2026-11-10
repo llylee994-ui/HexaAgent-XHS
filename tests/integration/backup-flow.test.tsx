@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { IDBFactory } from 'fake-indexeddb'
 import { describe, expect, it } from 'vitest'
@@ -40,12 +40,16 @@ async function setup(seedTitles: readonly string[]) {
 }
 
 async function exportBackup(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: '展开备份与恢复' }))
   await user.click(screen.getByRole('button', { name: '展开导出备份' }))
   await user.click(screen.getByRole('button', { name: '生成备份文本' }))
   return (screen.getByLabelText('备份文本') as HTMLTextAreaElement).value
 }
 
 async function pasteBackup(user: ReturnType<typeof userEvent.setup>, text: string) {
+  if (!screen.queryByRole('button', { name: '收起备份与恢复' })) {
+    await user.click(screen.getByRole('button', { name: '展开备份与恢复' }))
+  }
   await user.click(screen.getByRole('button', { name: '展开恢复备份' }))
   const box = screen.getByLabelText('粘贴备份文本')
   await user.click(box)
@@ -54,6 +58,24 @@ async function pasteBackup(user: ReturnType<typeof userEvent.setup>, text: strin
 }
 
 describe('备份与恢复', () => {
+  it('入口位于记录列表之前，搜索后仍导出全部记录', async () => {
+    const user = userEvent.setup()
+    await setup(['备份用例1', '备份用例2'])
+    await screen.findByText('备份用例1')
+
+    const action = screen.getByRole('button', { name: '展开备份与恢复' })
+    const firstCard = screen.getByRole('button', { name: '备份用例1' })
+    expect(action.compareDocumentPosition(firstCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await user.type(screen.getByLabelText('搜索卦例'), '备份用例1')
+    await user.click(screen.getByRole('button', { name: '搜索' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: '备份用例2' })).toBeNull())
+
+    const text = await exportBackup(user)
+    expect(text).toContain('备份用例1')
+    expect(text).toContain('备份用例2')
+  })
+
   it('导出全部卦例为可粘贴文本', async () => {
     const user = userEvent.setup()
     const { cases } = await setup(['备份用例1', '备份用例2'])
@@ -66,7 +88,7 @@ describe('备份与恢复', () => {
     for (const value of cases) {
       expect(text).toContain(value.id)
     }
-    expect(screen.getByText(/共 2 条记录/)).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: '备份与恢复' })).getByText(/共 2 条记录/)).toBeTruthy()
   })
 
   it('把备份粘回来可以恢复成新记录', async () => {

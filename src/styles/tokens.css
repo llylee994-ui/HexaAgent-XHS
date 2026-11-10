@@ -1,12 +1,21 @@
 :root {
+  color-scheme: light;
+
   --paper: #f5f0e8;
   --paper-deep: #ebe2d4;
   --ink: #24221f;
   --ink-muted: #716a61;
   --cinnabar: #b6493d;
+  --cinnabar-solid: #b6493d;
   --cinnabar-dark: #8f332d;
   --tea: #71816b;
   --earth: #9a7258;
+  --surface-rgb: 255 252 246;
+  --overlay-rgb: 255 255 255;
+  --input-bg: #fff;
+  --tint-base: #fff;
+  --coin-face: #f7edd8;
+  --body-glow: rgba(255, 255, 255, 0.7);
   --line: rgba(36, 34, 31, 0.14);
   --line-strong: rgba(36, 34, 31, 0.28);
   --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
@@ -22,4 +31,36 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --focus-ring: 0 0 0 3px rgba(182, 73, 61, 0.2);
   --active-transform: translateY(1px);
+}
+
+/*
+ * 夜间模式（墨夜）。由 src/styles/theme.ts 把解析后的主题写到 <html data-theme>，
+ * 所以这里不需要 prefers-color-scheme 分支，深浅两套令牌只有一份定义。
+ * 三个语义角色在深色下方向取反，改配色时不要照抄浅色值：
+ *   --paper-deep     浅色下比底色更深（hover 下沉），深色下要比底色更亮（hover 抬起）
+ *   --cinnabar-dark  浅色下是"浅底上的深朱砂文字"，深色下必须比 --cinnabar 更亮
+ *   --cinnabar-solid 填充按钮与铜钱面，始终配白字，所以不跟着 --cinnabar 一起提亮
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper: #1a1815;
+  --paper-deep: #2a251c;
+  --ink: #f2ece1;
+  --ink-muted: #a89e90;
+  --cinnabar: #dd7466;
+  --cinnabar-solid: #b6493d;
+  --cinnabar-dark: #f0a99f;
+  --tea: #9cab93;
+  --earth: #c39a76;
+  --surface-rgb: 38 34 28;
+  --overlay-rgb: 58 52 43;
+  --input-bg: #2e2922;
+  --tint-base: #26221c;
+  --coin-face: #332c20;
+  --body-glow: rgba(255, 240, 220, 0.06);
+  --line: rgba(242, 236, 225, 0.16);
+  --line-strong: rgba(242, 236, 225, 0.3);
+  --shadow-soft: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --focus-ring: 0 0 0 3px rgba(221, 116, 102, 0.28);
 }

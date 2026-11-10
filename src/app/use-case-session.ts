@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CastMethod, CoinThrow, DivinationCase, QuestionCategory, RawYaoValue } from '../domain/types'
 import { ENGINE_VERSION, SCHEMA_VERSION } from '../domain/versions'
 import { CAST_TIME_ZONE } from '../domain/time-zone'
+import { createId } from '../domain/ids'
 import { buildChart, type ChartOverrides } from '../engines/najia/chart'
 import { facesToRawValue, type CoinFaces } from '../engines/divination/coins'
 import { draftStore } from '../storage/draft-store'
@@ -30,7 +31,7 @@ interface SessionState {
 
 function freshState(): SessionState {
   return {
-    caseId: crypto.randomUUID(),
+    caseId: createId(),
     step: 'question',
     method: null,
     question: '',
@@ -61,24 +62,33 @@ function rawValuesToEntries(rawValues: readonly RawYaoValue[]): (RawYaoValue | n
   return entries
 }
 
-function restoreState(): SessionState {
+interface InitialSession {
+  state: SessionState
+  wasRestored: boolean
+}
+
+function loadInitialSession(): InitialSession {
   const draft = draftStore.load()
   if (!draft || (draft.rawValues.length === 0 && !draft.question)) {
-    return freshState()
+    return { state: freshState(), wasRestored: false }
   }
+  const step: SessionStep = draft.rawValues.length === 6 ? 'review' : 'casting'
   return {
-    ...freshState(),
-    caseId: draft.id,
-    method: draft.method,
-    question: draft.question,
-    category: draft.category,
-    note: draft.note,
-    castAt: draft.castAt,
-    // 草稿里已记录的开始时刻要保留，否则恢复后会把"恢复的那一刻"当成开始时刻
-    castStartedAt: draft.castStartedAt ?? null,
-    coinThrows: draft.coinThrows,
-    entries: rawValuesToEntries(draft.rawValues),
-    step: 'casting',
+    state: {
+      ...freshState(),
+      caseId: draft.id,
+      method: draft.method,
+      question: draft.question,
+      category: draft.category,
+      note: draft.note,
+      castAt: draft.castAt,
+      // 草稿里已记录的开始时刻要保留，否则恢复后会把"恢复的那一刻"当成开始时刻
+      castStartedAt: draft.castStartedAt ?? null,
+      coinThrows: draft.coinThrows,
+      entries: rawValuesToEntries(draft.rawValues),
+      step,
+    },
+    wasRestored: true,
   }
 }
 
@@ -113,6 +123,10 @@ function toDraft(state: SessionState): DivinationCase {
 
 export interface CaseSession {
   step: SessionStep
+  /** 本次挂载是否从 localStorage 的未完成草稿恢复而来 */
+  wasRestored: boolean
+  /** 最近一次自动保存草稿是否失败（存储被禁用或空间不足） */
+  draftSaveFailed: boolean
   method: CastMethod | null
   question: string
   category: QuestionCategory | ''
@@ -136,17 +150,30 @@ export interface CaseSession {
   confirmModification(): void
   persistDraft(): void
   completeCast(): DivinationCase
+  /** 清空未完成草稿并开始全新一卦：不产生正式卦例 */
+  discardDraft(): void
 }
 
 export function useCaseSession(): CaseSession {
-  const [state, setState] = useState<SessionState>(restoreState)
+  const initial = useRef(loadInitialSession()).current
+  const [state, setState] = useState<SessionState>(initial.state)
+  const [wasRestored, setWasRestored] = useState(initial.wasRestored)
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false)
 
   // 草稿自动保存：空会话不保存，摇卦与录入过程中每次变化都保存
   useEffect(() => {
     if (state.step === 'question' && !state.question && !state.note) {
       return
     }
-    draftStore.save(toDraft(state))
+    // 草稿是尽力而为的便利功能：容器禁用 localStorage 时不能让异常冒泡，
+    // 否则错误会从 effect 抛出并卸载整棵树，页面直接变空白。
+    // 但失败必须让用户看见——否则会以为已经存上而直接退出。
+    try {
+      draftStore.save(toDraft(state))
+      setDraftSaveFailed(false)
+    } catch {
+      setDraftSaveFailed(true)
+    }
   }, [state])
 
   const rawValues = state.entries.filter((value): value is RawYaoValue => value !== null)
@@ -240,12 +267,24 @@ export function useCaseSession(): CaseSession {
       updatedAt: now,
     }
     draftStore.clear()
+    // 本轮已经产出正式卦例，恢复标记不再成立，避免下一次进入投币页误报"已恢复"
+    setWasRestored(false)
+    setDraftSaveFailed(false)
     setState(freshState())
     return result
   }, [state])
 
+  const discardDraft = useCallback(() => {
+    draftStore.clear()
+    setWasRestored(false)
+    setDraftSaveFailed(false)
+    setState(freshState())
+  }, [])
+
   return {
     step: state.step,
+    wasRestored,
+    draftSaveFailed,
     method: state.method,
     question: state.question,
     category: state.category,
@@ -269,5 +308,6 @@ export function useCaseSession(): CaseSession {
     confirmModification,
     persistDraft,
     completeCast,
+    discardDraft,
   }
 }

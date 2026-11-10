@@ -1,4 +1,5 @@
 import type { DivinationCase } from '../domain/types'
+import { createId } from '../domain/ids'
 import { toStorageError } from './errors'
 import { migrateCase } from './migrations'
 
@@ -23,6 +24,8 @@ export interface CaseRepository {
   /** 备份恢复专用：原样写入未经迁移校验的记录（只读抢救），调用方必须先查 hasRecord 避免覆盖 */
   putRaw(record: Record<string, unknown>): Promise<void>
   delete(id: string): Promise<void>
+  /** 批量删除：单个事务内删除多条，id 不存在时静默跳过；事务要么全部提交要么全部回滚 */
+  deleteMany(ids: readonly string[]): Promise<void>
   /** 按问题、标题、卦名、标签模糊搜索（不区分大小写） */
   search(query: string): Promise<DivinationCase[]>
   /** 修改已完成卦象：复制为新版本草稿，原记录不变 */
@@ -53,6 +56,20 @@ async function withStore<T>(
     const request = action(transaction.objectStore(CASE_STORE))
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error ?? new Error('IndexedDB 操作失败'))
+  })
+}
+
+/** 多写事务：等到事务真正提交（oncomplete）才 resolve；withStore 只等到单次请求成功，不足以代表落盘 */
+function withWriteTransaction(
+  db: IDBDatabase,
+  action: (store: IDBObjectStore) => void,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(CASE_STORE, 'readwrite')
+    action(transaction.objectStore(CASE_STORE))
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB 操作失败'))
+    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB 事务已中止'))
   })
 }
 
@@ -91,9 +108,30 @@ function sortByUpdatedAtDesc<T>(values: readonly T[]): T[] {
   })
 }
 
+/**
+ * 存储不可用时的降级仓库：不再抛异常。
+ * 调用点（App / HomePage）在模块求值阶段就创建仓库，抛异常会让整个 bundle 挂掉变成白屏；
+ * 这里改成每次调用返回失败，由页面的既有错误分支展示提示。
+ */
+function unavailableRepository(message: string): CaseRepository {
+  const fail = () => Promise.reject(new Error(message))
+  return {
+    list: fail,
+    listEntries: fail,
+    get: fail,
+    hasRecord: fail,
+    put: fail,
+    putRaw: fail,
+    delete: fail,
+    deleteMany: fail,
+    search: fail,
+    duplicate: fail,
+  }
+}
+
 export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedDB): CaseRepository {
   if (!indexedDB) {
-    throw new Error('IndexedDB 不可用')
+    return unavailableRepository('本机存储不可用，卦例无法保存或读取')
   }
 
   async function loadEntries(): Promise<CaseEntry[]> {
@@ -180,6 +218,23 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
       }
     },
 
+    async deleteMany(ids) {
+      const uniqueIds = [...new Set(ids)]
+      if (uniqueIds.length === 0) {
+        return
+      }
+      const db = await openDatabase(indexedDB)
+      try {
+        await withWriteTransaction(db, (store) => {
+          for (const id of uniqueIds) {
+            store.delete(id)
+          }
+        })
+      } finally {
+        db.close()
+      }
+    },
+
     async search(query) {
       const normalized = query.trim().toLowerCase()
       if (!normalized) {
@@ -199,8 +254,9 @@ export function createCaseRepository(indexedDB: IDBFactory = globalThis.indexedD
       }
       const now = new Date().toISOString()
       const copy: DivinationCase = {
-        ...structuredClone(source),
-        id: crypto.randomUUID(),
+        // 不能用 structuredClone：部分容器 WebView 没有这个 API，会让「修改为副本」点了没反应
+        ...(JSON.parse(JSON.stringify(source)) as DivinationCase),
+        id: createId(),
         parentCaseId: source.id,
         status: 'draft',
         title: source.title ? `${source.title}（副本）` : '',

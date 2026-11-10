@@ -6,6 +6,7 @@ import { createDraft } from '../../src/domain/factories'
 import { buildChart } from '../../src/engines/najia/chart'
 import App from '../../src/app/App'
 import { HistoryPage } from '../../src/features/history/HistoryPage'
+import { HomePage } from '../../src/features/home/HomePage'
 import { createCaseRepository, type CaseRepository } from '../../src/storage/case-db'
 import { StorageFullError } from '../../src/storage/errors'
 import { beijing } from '../fixtures/beijing-time'
@@ -71,6 +72,24 @@ beforeEach(async () => {
 })
 
 describe('历史页时间线', () => {
+  it('读取记录期间显示加载反馈，不提前展示空态', async () => {
+    let resolveEntries!: (entries: Awaited<ReturnType<CaseRepository['listEntries']>>) => void
+    const entriesPromise = new Promise<Awaited<ReturnType<CaseRepository['listEntries']>>>((resolve) => {
+      resolveEntries = resolve
+    })
+    const fakeRepo = { listEntries: () => entriesPromise } as unknown as CaseRepository
+
+    render(<HistoryPage repository={fakeRepo} onView={() => {}} onBack={() => {}} />)
+    expect(screen.getByRole('status')).toHaveTextContent('正在加载卦例')
+    expect(screen.queryByText('还没有卦例，先从一次摇卦开始。')).toBeNull()
+    expect(screen.getByRole('button', { name: '搜索' })).toBeDisabled()
+
+    resolveEntries([])
+    expect(await screen.findByText('还没有卦例，先从一次摇卦开始。')).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('button', { name: '搜索' })).toBeEnabled()
+  })
+
   it('按更新时间倒序展示并映射状态标签', async () => {
     const user = userEvent.setup()
     await seedFourCases()
@@ -116,7 +135,7 @@ describe('历史页时间线', () => {
     await screen.findByText('标题D')
 
     await user.click(screen.getAllByRole('button', { name: '删除' })[0])
-    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(screen.getByRole('dialog').parentElement).toBe(document.body)
     await user.click(screen.getByRole('button', { name: '确认删除' }))
 
     await waitFor(() => expect(screen.queryByText('标题D')).toBeNull())
@@ -144,7 +163,174 @@ describe('历史页时间线', () => {
   })
 })
 
+describe('批量删除', () => {
+  it('管理模式下勾选多条后一次删除，未选中的记录保留', async () => {
+    const user = userEvent.setup()
+    await seedFourCases()
+    render(<App />)
+    await openHistory(user)
+    await screen.findByText('标题D')
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    expect(screen.getByRole('button', { name: '删除选中（0 条）' })).toBeDisabled()
+
+    await user.click(screen.getByRole('checkbox', { name: '选择「标题D」' }))
+    await user.click(screen.getByRole('checkbox', { name: '选择「标题C」' }))
+    expect(screen.getByText(/已选 2 条 \/ 可删 4 条/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '删除选中（2 条）' }))
+    expect(screen.getByRole('dialog').parentElement).toBe(document.body)
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    await waitFor(() => expect(screen.queryByText('标题D')).toBeNull())
+    expect(screen.queryByText('标题C')).toBeNull()
+    expect(screen.getByText('标题B')).toBeTruthy()
+    expect(screen.getByText('标题A')).toBeTruthy()
+    expect((await repository.list()).map((value) => value.title)).toEqual(['标题B', '标题A'])
+  })
+
+  it('点卡片标题即可勾选，全选后删除整页并回到空态', async () => {
+    const user = userEvent.setup()
+    await seedFourCases()
+    render(<App />)
+    await openHistory(user)
+    await screen.findByText('标题D')
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    await user.click(screen.getByText('标题D'))
+    expect(screen.getByText(/已选 1 条/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '全选' }))
+    expect(screen.getByText(/已选 4 条 \/ 可删 4 条/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: '取消全选' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '删除选中（4 条）' }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    expect(await screen.findByText('还没有卦例，先从一次摇卦开始。')).toBeTruthy()
+    expect(await repository.list()).toEqual([])
+  })
+
+  it('搜索结果里全选只作用于命中的记录，删除后仍保持搜索结果', async () => {
+    const user = userEvent.setup()
+    await seedFourCases()
+    render(<App />)
+    await openHistory(user)
+    await screen.findByText('标题D')
+
+    fireEvent.change(screen.getByLabelText('搜索卦例'), { target: { value: '面试' } })
+    await user.click(screen.getByRole('button', { name: '搜索' }))
+    // 等搜索结果真正落地：加载期间整张列表都不渲染，只断言"某条标题消失"会在加载中途提前返回
+    await waitFor(() =>
+      expect(screen.getAllByText(/^标题[A-D]$/).map((element) => element.textContent)).toEqual(['标题B']),
+    )
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    await user.click(screen.getByRole('button', { name: '全选' }))
+    expect(screen.getByText(/已选 1 条 \/ 可删 1 条/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '删除选中（1 条）' }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    // 列表维持搜索结果而不是跳回全量，计数与备份用的全量列表同步刷新
+    expect(await screen.findByText('没有找到匹配的卦例。')).toBeTruthy()
+    expect(screen.getByText('共 3 条记录')).toBeTruthy()
+    expect(screen.getByLabelText('搜索卦例')).toHaveValue('面试')
+    expect((await repository.list()).map((value) => value.title)).toEqual(['标题D', '标题C', '标题A'])
+
+    await user.click(screen.getByRole('button', { name: '清除' }))
+    expect(await screen.findByText('标题A')).toBeTruthy()
+  })
+
+  it('搜索状态下单条删除后列表同样保持搜索结果', async () => {
+    const user = userEvent.setup()
+    await seedFourCases()
+    render(<App />)
+    await openHistory(user)
+    await screen.findByText('标题D')
+
+    fireEvent.change(screen.getByLabelText('搜索卦例'), { target: { value: '面试' } })
+    await user.click(screen.getByRole('button', { name: '搜索' }))
+    await waitFor(() =>
+      expect(screen.getAllByText(/^标题[A-D]$/).map((element) => element.textContent)).toEqual(['标题B']),
+    )
+
+    await user.click(screen.getByRole('button', { name: '删除', exact: true }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    expect(await screen.findByText('没有找到匹配的卦例。')).toBeTruthy()
+    expect(screen.getByText('共 3 条记录')).toBeTruthy()
+    expect((await repository.list()).map((value) => value.title)).toEqual(['标题D', '标题C', '标题A'])
+  })
+
+  it('退出管理模式后卡片恢复跳转，选择不保留', async () => {
+    const user = userEvent.setup()
+    await seedFourCases()
+    render(<App />)
+    await openHistory(user)
+    await screen.findByText('标题D')
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    await user.click(screen.getByRole('checkbox', { name: '选择「标题D」' }))
+    await user.click(screen.getByRole('button', { name: '完成' }))
+
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.getByRole('button', { name: '标题D' })).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    expect(screen.getByText(/已选 0 条/)).toBeTruthy()
+  })
+
+  it('管理模式下只读记录没有复选框，且提示不参与删除', async () => {
+    const writable = await seedCase('可写案例', 'cast', '2026-08-05T00:00:00.000Z')
+    const fakeRepo = {
+      listEntries: async () => [
+        { mode: 'writable' as const, value: writable },
+        { mode: 'readonly' as const, raw: { question: '旧版本卦例', schemaVersion: 999 }, reason: '数据来自更新版本的小工具' },
+      ],
+    } as unknown as CaseRepository
+
+    const user = userEvent.setup()
+    render(<HistoryPage repository={fakeRepo} onView={() => {}} onBack={() => {}} />)
+    await screen.findByText('可写案例')
+
+    await user.click(screen.getByRole('button', { name: '管理' }))
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1)
+    expect(screen.getByText(/另有 1 条只读记录不参与批量删除。/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '全选' }))
+    expect(screen.getByText(/已选 1 条 \/ 可删 1 条/)).toBeTruthy()
+  })
+
+  it('没有可删记录时不渲染「管理」，不留点不动的灰按钮', async () => {
+    const fakeRepo = {
+      listEntries: async () => [
+        { mode: 'readonly' as const, raw: { question: '旧版本卦例', schemaVersion: 999 }, reason: '数据来自更新版本的小工具' },
+      ],
+    } as unknown as CaseRepository
+
+    render(<HistoryPage repository={fakeRepo} onView={() => {}} onBack={() => {}} />)
+    expect((await screen.findAllByText(/只读/)).length).toBeGreaterThanOrEqual(1)
+
+    expect(screen.queryByRole('button', { name: '管理' })).toBeNull()
+    expect(screen.getByRole('button', { name: '展开备份与恢复' })).toBeTruthy()
+  })
+})
+
 describe('首页最近卦例', () => {
+  it('最近卦例读取期间显示加载反馈，不提前展示空态', async () => {
+    let resolveCases!: (cases: DivinationCase[]) => void
+    const pending = new Promise<DivinationCase[]>((resolve) => { resolveCases = resolve })
+    const fakeRepo = { list: () => pending } as unknown as CaseRepository
+
+    render(<HomePage repository={fakeRepo} onNavigate={() => {}} onViewCase={() => {}} />)
+    expect(screen.getByRole('status')).toHaveTextContent('正在加载最近卦例')
+    expect(screen.queryByText('还没有卦例，先从一次摇卦开始。')).toBeNull()
+
+    resolveCases([])
+    expect(await screen.findByText('还没有卦例，先从一次摇卦开始。')).toBeTruthy()
+  })
+
   it('首页只显示最近三条', async () => {
     await seedFourCases()
     render(<App />)

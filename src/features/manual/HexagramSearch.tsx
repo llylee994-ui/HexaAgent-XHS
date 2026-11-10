@@ -35,10 +35,11 @@ export function HexagramSearch({ value, onSelect }: HexagramSearchProps) {
   return (
     <div ref={rootRef} className="hexagram-search">
       <label className="field">
-        <span className="field__label">卦名搜索</span>
+        <span className="field__label hexagram-search__label">搜索并选择卦名</span>
         <input
           role="combobox"
           aria-label="搜索卦名"
+          placeholder="输入卦名，如：乾、风山渐"
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"

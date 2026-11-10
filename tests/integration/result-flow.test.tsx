@@ -7,6 +7,7 @@ import type { CoinThrow, DivinationCase } from '../../src/domain/types'
 import { buildChart } from '../../src/engines/najia/chart'
 import { interpret } from '../../src/engines/interpretation/engine'
 import { ResultPage } from '../../src/features/result/ResultPage'
+import { AnswerPanel } from '../../src/features/result/AnswerPanel'
 import { ReferenceText } from '../../src/features/result/ReferenceText'
 import { beijing } from '../fixtures/beijing-time'
 
@@ -49,10 +50,10 @@ function Harness({ initial, onChangeSpy }: { initial: DivinationCase; onChangeSp
   )
 }
 
-async function setup() {
+async function setup(initial: DivinationCase = buildCase()) {
   const user = userEvent.setup()
   const onChangeSpy = vi.fn()
-  render(<Harness initial={buildCase()} onChangeSpy={onChangeSpy} />)
+  render(<Harness initial={initial} onChangeSpy={onChangeSpy} />)
   return { user, onChangeSpy }
 }
 
@@ -167,6 +168,33 @@ describe('提示词与回答闭环', () => {
     expect(textarea.selectionEnd).toBe(textarea.value.length)
   })
 
+  it('全选内容有可见反馈：按钮与提示文字同步变化，换提示词后复位', async () => {
+    const { user } = await setup()
+    await user.click(screen.getByRole('button', { name: '生成精简版提示词' }))
+    expect(screen.getByText(/点「全选内容」选中全部文本/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: '全选内容' }))
+    expect(screen.getByRole('button', { name: '已全选' })).toBeTruthy()
+    expect(screen.getByText('已选中全部文本，请使用平台长按菜单复制。')).toBeTruthy()
+
+    // 换一份提示词后，上一次的"已选中"反馈不再对应当前内容
+    await user.click(screen.getByRole('button', { name: '生成专业版提示词' }))
+    expect(screen.getByRole('button', { name: '全选内容' })).toBeTruthy()
+    expect(screen.getByText(/点「全选内容」选中全部文本/)).toBeTruthy()
+  })
+
+  it('保存卦例信息后给出已保存反馈，改动字段后撤下', async () => {
+    const { user } = await setup()
+    expect(screen.queryByText(/已保存到本机/)).toBeNull()
+
+    await user.type(screen.getByLabelText('卦例标题'), '换工作第一卦')
+    await user.click(screen.getByRole('button', { name: '保存卦例信息' }))
+    expect(screen.getByRole('status')).toHaveTextContent('已保存到本机')
+
+    await user.type(screen.getByLabelText('卦例标题'), '续')
+    expect(screen.queryByText(/已保存到本机/)).toBeNull()
+  })
+
   it('完整排盘只标记实际被人工校正的字段', async () => {
     const user = userEvent.setup()
     const chart = buildChart([6, 7, 7, 7, 7, 7], CAST_AT, { lines: { 1: { liushen: '人工六神' } } })
@@ -213,5 +241,131 @@ describe('提示词与回答闭环', () => {
     const saved = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
     expect(saved.title).toBe('换工作第一卦')
     expect(saved.verification).toBe('两周后拿到 offer')
+  })
+})
+
+describe('AI 回答的修改与删除', () => {
+  /** 生成提示词并存下一条回答，作为编辑/删除的起点 */
+  async function setupWithAnswer(initial: DivinationCase = buildCase()) {
+    const { user, onChangeSpy } = await setup(initial)
+    await user.click(screen.getByRole('button', { name: '生成精简版提示词' }))
+    await user.click(screen.getByRole('button', { name: '已问过 AI？粘贴回答' }))
+    await user.type(screen.getByLabelText('粘贴 AI 回答'), '原始解读内容')
+    await user.selectOptions(screen.getByLabelText('AI 来源'), 'DeepSeek')
+    await user.click(screen.getByRole('button', { name: '保存回答' }))
+    return { user, onChangeSpy }
+  }
+
+  async function pasteAnother(user: ReturnType<typeof userEvent.setup>, content: string, source: string) {
+    await user.click(screen.getByRole('button', { name: '已问过 AI？粘贴回答' }))
+    await user.type(screen.getByLabelText('粘贴 AI 回答'), content)
+    await user.selectOptions(screen.getByLabelText('AI 来源'), source)
+    await user.click(screen.getByRole('button', { name: '保存回答' }))
+  }
+
+  it('可以修改已保存回答的内容与来源，并保留首次保存时间', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer()
+    const saved = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    const createdAt = saved.answers[0].createdAt
+
+    await user.click(screen.getByRole('button', { name: '编辑第 1 条 AI 回答' }))
+    const editor = screen.getByLabelText('修改 AI 回答') as HTMLTextAreaElement
+    expect(editor.value).toBe('原始解读内容')
+
+    await user.clear(editor)
+    await user.type(editor, '修改后的解读内容')
+    await user.selectOptions(screen.getByLabelText('修改 AI 来源'), 'ChatGPT')
+    await user.click(screen.getByRole('button', { name: '保存修改' }))
+
+    const edited = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    expect(edited.answers).toHaveLength(1)
+    expect(edited.answers[0].content).toBe('修改后的解读内容')
+    expect(edited.answers[0].source).toBe('ChatGPT')
+    expect(edited.answers[0].createdAt).toBe(createdAt)
+    expect(screen.getByText('修改后的解读内容')).toBeTruthy()
+    expect(screen.queryByLabelText('修改 AI 回答')).toBeNull()
+  })
+
+  it('取消编辑不写回任何修改', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer()
+    const callsBefore = onChangeSpy.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: '编辑第 1 条 AI 回答' }))
+    await user.clear(screen.getByLabelText('修改 AI 回答'))
+    await user.type(screen.getByLabelText('修改 AI 回答'), '不该被保存的内容')
+    await user.click(screen.getByRole('button', { name: '取消' }))
+
+    expect(onChangeSpy.mock.calls.length).toBe(callsBefore)
+    expect(screen.getByText('原始解读内容')).toBeTruthy()
+    expect(screen.queryByText('不该被保存的内容')).toBeNull()
+  })
+
+  it('删除回答需要二次确认，取消后不删除', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer()
+    const callsBefore = onChangeSpy.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: '删除第 1 条 AI 回答' }))
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: '取消' }))
+
+    expect(onChangeSpy.mock.calls.length).toBe(callsBefore)
+    expect(screen.getByText('原始解读内容')).toBeTruthy()
+  })
+
+  it('删除最后一条回答后退回「已生成提示词」，并重新提示未保存解读', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer()
+    await user.click(screen.getByRole('button', { name: '删除第 1 条 AI 回答' }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    const after = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    expect(after.answers).toEqual([])
+    expect(after.status).toBe('prompted')
+    expect(screen.getByText('这条卦例还没有保存 AI 解读')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '删除第 1 条 AI 回答' })).toBeNull()
+  })
+
+  it('删除其中一条不影响其他回答', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer()
+    await pasteAnother(user, '第二条解读内容', 'ChatGPT')
+
+    await user.click(screen.getByRole('button', { name: '删除第 1 条 AI 回答' }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    const after = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    expect(after.answers.map((answer) => answer.content)).toEqual(['第二条解读内容'])
+    expect(after.status).toBe('answered')
+    expect(screen.queryByText('原始解读内容')).toBeNull()
+    expect(screen.getByText('第二条解读内容')).toBeTruthy()
+  })
+
+  it('已补充后续验证的卦例删空回答后状态不倒退', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer({ ...buildCase(), status: 'verified' })
+    await user.click(screen.getByRole('button', { name: '删除第 1 条 AI 回答' }))
+    await user.click(screen.getByRole('button', { name: '确认删除' }))
+
+    const after = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    expect(after.answers).toEqual([])
+    expect(after.status).toBe('verified')
+  })
+
+  it('已补充后续验证的卦例再存回答也不会降级状态', async () => {
+    const { user, onChangeSpy } = await setupWithAnswer({ ...buildCase(), status: 'verified' })
+    await pasteAnother(user, '第三条解读内容', '豆包')
+
+    const after = onChangeSpy.mock.calls.at(-1)![0] as DivinationCase
+    expect(after.answers).toHaveLength(2)
+    expect(after.status).toBe('verified')
+  })
+
+  it('没有可关联提示词时给出提示而不是静默无反应', async () => {
+    const user = userEvent.setup()
+    const onChangeSpy = vi.fn()
+    render(<AnswerPanel caseValue={buildCase()} promptId={null} open onChange={onChangeSpy} />)
+
+    await user.type(screen.getByLabelText('粘贴 AI 回答'), '没有提示词也要能保存')
+    await user.click(screen.getByRole('button', { name: '保存回答' }))
+
+    expect(screen.getByText(/还没有可关联的提示词/)).toBeTruthy()
+    expect(onChangeSpy).not.toHaveBeenCalled()
   })
 })

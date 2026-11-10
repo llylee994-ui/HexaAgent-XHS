@@ -25,7 +25,7 @@ export interface ResultPageProps {
 /** 结果页：主卡 → 关键观察 → 完整排盘 → 卦爻参考 → 问 AI → 回答回填 → 保存 */
 export function ResultPage({ caseValue, onChange, onBack, onHome = onBack, frame = DETACHED_FRAME }: ResultPageProps) {
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(
-    caseValue.prompts.at(-1)?.id ?? null,
+    caseValue.prompts.length > 0 ? caseValue.prompts[caseValue.prompts.length - 1].id : null,
   )
   const [answerOpen, setAnswerOpen] = useState(false)
   const [disclosureOpen, setDisclosureOpen] = useState(false)

@@ -5,6 +5,7 @@ import type {
 } from './types'
 import { ENGINE_VERSION, SCHEMA_VERSION } from './versions'
 import { CAST_TIME_ZONE } from './time-zone'
+import { createId } from './ids'
 
 export interface CreateDraftInput {
   question: string
@@ -16,15 +17,11 @@ export interface CreateDraftInput {
   parentCaseId?: string | null
 }
 
-function createCaseId() {
-  return globalThis.crypto.randomUUID()
-}
-
 export function createDraft(input: CreateDraftInput): DivinationCase {
   const now = new Date().toISOString()
 
   return {
-    id: createCaseId(),
+    id: createId(),
     schemaVersion: SCHEMA_VERSION,
     engineVersion: ENGINE_VERSION,
     status: 'draft',

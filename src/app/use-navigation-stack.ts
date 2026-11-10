@@ -44,6 +44,8 @@ export function useNavigationStack(initialRoute: Route = 'home'): NavigationStac
   const [direction, setDirection] = useState<NavigationDirection>('forward')
   const pendingInAppBacks = useRef(0)
   const depthRef = useRef(1)
+  /** history 是否可用：容器沙箱里 pushState 会抛 SecurityError，此后不能再调 history.back() */
+  const historyUsable = useRef(true)
 
   useEffect(() => {
     const onPopState = (event: PopStateEvent) => {
@@ -67,7 +69,13 @@ export function useNavigationStack(initialRoute: Route = 'home'): NavigationStac
   const push = useCallback((entry: Omit<NavigationEntry, 'key'>) => {
     setDirection('forward')
     depthRef.current += 1
-    history.pushState({ wenYaoIndex: depthRef.current } satisfies BrowserState, '')
+    // 容器沙箱可能禁用 history API（抛 SecurityError）：退化成纯内存导航，
+    // 丢了浏览器历史同步，但页面内前进/后退照常可用
+    try {
+      history.pushState({ wenYaoIndex: depthRef.current } satisfies BrowserState, '')
+    } catch {
+      historyUsable.current = false
+    }
     setEntries((prev) => [...prev, { ...entry, key: createKey(entry.route) }])
   }, [])
 
@@ -81,18 +89,32 @@ export function useNavigationStack(initialRoute: Route = 'home'): NavigationStac
 
   const back = useCallback(() => {
     if (depthRef.current <= 1) return
-    pendingInAppBacks.current += 1
     depthRef.current -= 1
-    history.back()
     setDirection('back')
     setEntries((prev) => popStack(prev))
+    // history 不可用时绝不能调 back()：浏览器历史里没有我们压入的记录，
+    // 那一步会把容器里的页面真的退出去（表现为"返回把应用关掉了"）
+    if (!historyUsable.current) return
+    pendingInAppBacks.current += 1
+    try {
+      history.back()
+    } catch {
+      // history 被禁用时不会有 popstate 回来，立刻把占位计数还回去
+      historyUsable.current = false
+      pendingInAppBacks.current -= 1
+    }
   }, [])
 
   const resetToHome = useCallback(() => {
     setDirection('back')
     depthRef.current = 1
     pendingInAppBacks.current = 0
-    history.replaceState({ wenYaoIndex: 1 } satisfies BrowserState, '')
+    try {
+      history.replaceState({ wenYaoIndex: 1 } satisfies BrowserState, '')
+    } catch {
+      // 同 push：history 不可用时仅内存栈回到首页
+      historyUsable.current = false
+    }
     setEntries([{ ...HOME_ENTRY }])
   }, [])
 

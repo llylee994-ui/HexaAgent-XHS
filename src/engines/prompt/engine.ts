@@ -1,5 +1,6 @@
 import type { DivinationCase, PromptSnapshot, PromptVariant } from '../../domain/types'
 import { PROMPT_VERSION } from '../../domain/versions'
+import { createId } from '../../domain/ids'
 import { YONGSHEN_BY_CATEGORY } from '../interpretation/categories'
 import { isSizhuOverridden } from '../najia/chart'
 import {
@@ -110,7 +111,7 @@ export function generatePrompt(caseValue: DivinationCase, variant: PromptVariant
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: createId(),
     variant,
     version: PROMPT_VERSION,
     content: lines.join('\n'),

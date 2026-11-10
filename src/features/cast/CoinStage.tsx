@@ -1,15 +1,15 @@
-import { useState } from 'react'
 import { Coin } from '../../components'
-import { throwCoins } from '../../engines/divination/coins'
+import type { CoinFaces } from '../../engines/divination/coins'
 
 export interface CoinStageProps {
-  onThrow(faces: readonly [0 | 1, 0 | 1, 0 | 1]): void
+  faces: CoinFaces
 }
 
-/** 模拟三枚铜钱：点击摇动完成一次投币，CSS 动画表现翻转 */
-export function CoinStage({ onThrow }: CoinStageProps) {
-  const [faces, setFaces] = useState<readonly [0 | 1, 0 | 1, 0 | 1]>([0, 0, 0])
-
+/**
+ * 模拟三枚铜钱：只展示由页面控制的本轮铜钱面。
+ * 页面把「摇动铜钱」放进固定操作栏，这里不再自带主按钮，避免出现两个入口。
+ */
+export function CoinStage({ faces }: CoinStageProps) {
   return (
     <div className="coin-stage">
       <div className="coin-stage__coins">
@@ -17,17 +17,6 @@ export function CoinStage({ onThrow }: CoinStageProps) {
         <Coin face={faces[1]} label="第二枚铜钱" />
         <Coin face={faces[2]} label="第三枚铜钱" />
       </div>
-      <button
-        type="button"
-        className="btn btn--primary"
-        onClick={() => {
-          const next = throwCoins()
-          setFaces(next)
-          onThrow(next)
-        }}
-      >
-        摇动铜钱
-      </button>
     </div>
   )
 }

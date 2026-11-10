@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import { createDraft } from '../../src/domain/factories'
 import type { AiAnswer, DivinationCase, PromptSnapshot } from '../../src/domain/types'
@@ -125,6 +125,40 @@ describe('caseRepository 增删改查', () => {
     await repository.put(value)
     await repository.delete(value.id)
     expect(await repository.get(value.id)).toBeNull()
+  })
+
+  it('indexedDB 不可用时创建仓库不抛异常，改为每次调用返回错误', async () => {
+    // 关键回归：旧实现在模块求值阶段抛错，容器禁用存储时会让整个 bundle 挂掉（整页白屏）
+    vi.stubGlobal('indexedDB', undefined)
+    try {
+      const unavailable = createCaseRepository()
+      await expect(unavailable.list()).rejects.toThrow('本机存储不可用')
+      await expect(unavailable.listEntries()).rejects.toThrow('本机存储不可用')
+      await expect(unavailable.search('任意')).rejects.toThrow('本机存储不可用')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('deleteMany 一次删除多条，未选中的记录不变', async () => {
+    const repository = repo()
+    await repository.put(buildSavedCase({ id: 'a' }))
+    await repository.put(buildSavedCase({ id: 'b' }))
+    await repository.put(buildSavedCase({ id: 'c' }))
+
+    await repository.deleteMany(['a', 'c'])
+
+    expect((await repository.list()).map((value) => value.id)).toEqual(['b'])
+  })
+
+  it('deleteMany 跳过不存在的 id 与重复 id，空数组不操作', async () => {
+    const repository = repo()
+    await repository.put(buildSavedCase({ id: 'a' }))
+
+    await expect(repository.deleteMany(['a', 'a', 'missing'])).resolves.toBeUndefined()
+    expect(await repository.list()).toEqual([])
+
+    await expect(repository.deleteMany([])).resolves.toBeUndefined()
   })
 })
 

@@ -1,7 +1,11 @@
 import type { LinePosition, RawYaoValue, YinYang } from '../domain/types'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 export { PageFrame } from './PageFrame'
 export type { PageFrameProps } from './PageFrame'
+export { PageActionBar } from './PageActionBar'
+export type { PageActionBarProps } from './PageActionBar'
+export { DraftRecoveryNotice } from './DraftRecoveryNotice'
 
 export interface CoinProps {
   face: 0 | 1
@@ -171,7 +175,7 @@ export function ConfirmDialog({
   if (!open) {
     return null
   }
-  return (
+  return createPortal(
     <div className="confirm-dialog" role="dialog" aria-modal="true" aria-label={title}>
       <div className="confirm-dialog__panel">
         <h2 className="confirm-dialog__title">{title}</h2>
@@ -185,6 +189,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

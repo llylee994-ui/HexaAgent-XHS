@@ -13,6 +13,7 @@ test('导出备份并粘贴恢复', async ({ page }) => {
   await page.getByRole('button', { name: '返回首页' }).click()
   await page.getByRole('button', { name: '卦例记录' }).click()
 
+  await page.getByRole('button', { name: '展开备份与恢复' }).click()
   await page.getByRole('button', { name: '展开导出备份' }).click()
   await page.getByRole('button', { name: '生成备份文本' }).click()
 

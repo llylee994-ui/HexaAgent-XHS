@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DivinationCase, HexagramChart, LinePosition, QuestionCategory, RawYaoValue } from '../../domain/types'
+import type { NavigationDirection } from '../../app/navigation'
 import { createDraft } from '../../domain/factories'
+import { createId } from '../../domain/ids'
 import type { ChartLineOverrides } from '../../engines/najia/chart'
 import { ENGINE_VERSION } from '../../domain/versions'
 import {
@@ -24,6 +26,10 @@ export interface ManualEditorController {
   chart: HexagramChart | null
   issues: readonly ManualValidationIssue[]
   status: ManualEditorStatus
+  /** 本次挂载是否从未完成的草稿恢复而来；完成一轮后的返回校正不算"未完成" */
+  wasRestored: boolean
+  /** 最近一次草稿保存是否失败（存储被禁用或空间不足） */
+  draftSaveFailed: boolean
   selectHexagram(name: string): void
   setLine(position: LinePosition, patch: Partial<ManualLineInput>): void
   setLineOverride(position: LinePosition, patch: ChartLineOverrides): void
@@ -54,9 +60,22 @@ function freshState(): ManualEditorState {
   }
 }
 
-function loadedState(): { state: ManualEditorState; openFushen: readonly LinePosition[]; caseId: string } {
+function loadedState(direction: NavigationDirection): {
+  state: ManualEditorState
+  openFushen: readonly LinePosition[]
+  caseId: string
+  completed: boolean
+  wasRestored: boolean
+} {
+  const fresh = () => ({ state: freshState(), openFushen: [], caseId: createId(), completed: false, wasRestored: false })
   const snapshot = manualDraftStore.load()
-  if (!snapshot) return { state: freshState(), openFushen: [], caseId: crypto.randomUUID() }
+  if (!snapshot) return fresh()
+  // 已完成的一轮只在“从结果页返回上一页”时恢复，便于继续校正；
+  // 从首页重新进入属于新一轮，不能把上一轮的问题与卦象带过来
+  if (snapshot.completed && direction !== 'back') {
+    manualDraftStore.clear()
+    return fresh()
+  }
   return {
     state: {
       question: snapshot.question,
@@ -69,6 +88,9 @@ function loadedState(): { state: ManualEditorState; openFushen: readonly LinePos
     },
     openFushen: snapshot.openFushen,
     caseId: snapshot.caseId,
+    completed: snapshot.completed ?? false,
+    // 只有“未完成的草稿”才提示恢复；已完成的一轮只是回来校正
+    wasRestored: !snapshot.completed,
   }
 }
 
@@ -76,22 +98,31 @@ function lineIndex(position: LinePosition): number {
   return position - 1
 }
 
-function snapshotFor(state: ManualEditorState, caseId: string, openFushen: readonly LinePosition[]): ManualDraftSnapshot {
+function snapshotFor(
+  state: ManualEditorState,
+  caseId: string,
+  openFushen: readonly LinePosition[],
+  completed: boolean,
+): ManualDraftSnapshot {
   return {
     ...state,
     version: 1,
     caseId,
     openFushen,
     updatedAt: new Date().toISOString(),
+    completed,
   }
 }
 
-export function useManualEditor(): ManualEditorController {
-  const initial = useRef(loadedState()).current
+export function useManualEditor(direction: NavigationDirection = 'forward'): ManualEditorController {
+  const initial = useRef(loadedState(direction)).current
   const caseId = useRef(initial.caseId)
+  const completed = useRef(initial.completed)
   const [state, setState] = useState<ManualEditorState>(initial.state)
   const [openFushen, setOpenFushen] = useState<readonly LinePosition[]>(initial.openFushen)
   const [status, setStatus] = useState<ManualEditorStatus>('idle')
+  const [wasRestored, setWasRestored] = useState(initial.wasRestored)
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false)
 
   const chart = useMemo(() => {
     try {
@@ -106,8 +137,10 @@ export function useManualEditor(): ManualEditorController {
   useEffect(() => {
     if (!state.question.trim() || state.rawValues.length !== 6) return
     try {
-      manualDraftStore.save(snapshotFor(state, caseId.current, openFushen))
+      manualDraftStore.save(snapshotFor(state, caseId.current, openFushen, completed.current))
+      setDraftSaveFailed(false)
     } catch {
+      setDraftSaveFailed(true)
       setStatus('error')
     }
   }, [openFushen, state])
@@ -158,9 +191,11 @@ export function useManualEditor(): ManualEditorController {
       return
     }
     try {
-      manualDraftStore.save(snapshotFor(state, caseId.current, openFushen))
+      manualDraftStore.save(snapshotFor(state, caseId.current, openFushen, completed.current))
+      setDraftSaveFailed(false)
       setStatus('saved')
     } catch {
+      setDraftSaveFailed(true)
       setStatus('error')
     }
   }, [openFushen, state])
@@ -174,6 +209,14 @@ export function useManualEditor(): ManualEditorController {
     const category = state.category === '' ? 'other' : state.category
     const draft = createDraft({ question: state.question, category, castAt: state.castAt, method: 'manual', note: state.note })
     const now = new Date().toISOString()
+    // 标记这一轮已完结：草稿仍留着供“从结果页返回”继续校正，但不再带进下一次全新录入
+    completed.current = true
+    setWasRestored(false)
+    try {
+      manualDraftStore.save(snapshotFor(state, caseId.current, openFushen, true))
+    } catch {
+      // 草稿写不进去不影响已生成的正式卦例
+    }
     return {
       ...draft,
       status: 'cast',
@@ -183,7 +226,7 @@ export function useManualEditor(): ManualEditorController {
       createdAt: now,
       updatedAt: now,
     }
-  }, [chart, state])
+  }, [chart, openFushen, state])
 
   const setQuestion = useCallback((question: string, category: QuestionCategory | '', note: string) => {
     setState((previous) => ({ ...previous, question, category, note }))
@@ -215,7 +258,10 @@ export function useManualEditor(): ManualEditorController {
 
   const discardDraft = useCallback(() => {
     manualDraftStore.clear()
-    caseId.current = crypto.randomUUID()
+    caseId.current = createId()
+    completed.current = false
+    setWasRestored(false)
+    setDraftSaveFailed(false)
     setState(freshState())
     setOpenFushen([])
     setStatus('idle')
@@ -226,6 +272,8 @@ export function useManualEditor(): ManualEditorController {
     chart,
     issues,
     status,
+    wasRestored,
+    draftSaveFailed,
     selectHexagram,
     setLine,
     setLineOverride,

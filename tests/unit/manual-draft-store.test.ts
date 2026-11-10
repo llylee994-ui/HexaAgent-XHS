@@ -53,4 +53,23 @@ describe('手动排盘草稿存储', () => {
     )
     expect(manualDraftStore.load()).toBeNull()
   })
+
+  it('容器禁用存储（读取 localStorage 属性即抛）时 load 返回 null 而不是抛异常', () => {
+    // 关键回归：旧实现直接访问 globalThis.localStorage，容器沙箱里这一步就抛 SecurityError，
+    // 手动排盘页会在渲染期崩溃并让整棵树被卸载
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('blocked', 'SecurityError')
+      },
+    })
+    try {
+      expect(manualDraftStore.load()).toBeNull()
+      expect(() => manualDraftStore.clear()).not.toThrow()
+      expect(() => manualDraftStore.save(buildManualDraft())).toThrow('localStorage 不可用')
+    } finally {
+      if (original) Object.defineProperty(window, 'localStorage', original)
+    }
+  })
 })

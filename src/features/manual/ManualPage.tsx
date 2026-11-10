@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { DivinationCase } from '../../domain/types'
 import type { PageFrameBinding } from '../../app/navigation'
 import { DETACHED_FRAME } from '../../app/navigation'
-import { ConfirmDialog, PageFrame } from '../../components'
+import { ConfirmDialog, DraftRecoveryNotice, PageActionBar, PageFrame } from '../../components'
 import { QuestionStep } from '../cast/QuestionStep'
 import { QUESTION_CATEGORY_OPTIONS } from '../shared/categories'
 import { HexagramSearch } from './HexagramSearch'
@@ -10,6 +10,7 @@ import { ManualValidationSummary } from './ManualValidationSummary'
 import { SizhuEditor } from './SizhuEditor'
 import { useManualEditor } from './use-manual-editor'
 import { YaoEditor } from './YaoEditor'
+import { draftHint } from '../shared/draft-hint'
 
 export interface ManualPageProps {
   onCaseCreated(caseValue: DivinationCase): void
@@ -26,8 +27,9 @@ const STATUS_LABEL = {
 } as const
 
 export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPageProps) {
-  const controller = useManualEditor()
+  const controller = useManualEditor(frame.direction)
   const [restoreAllOpen, setRestoreAllOpen] = useState(false)
+  const [newCastOpen, setNewCastOpen] = useState(false)
 
   const focusFirstIssue = () => {
     const first = controller.issues[0]
@@ -62,9 +64,18 @@ export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPage
     if (result) onCaseCreated(result)
   }
 
+  const discardAndRestart = () => {
+    controller.discardDraft()
+    setNewCastOpen(false)
+  }
+
+  const hint = draftHint(controller.draftSaveFailed)
+
   return (
     <PageFrame title="手动排盘" canGoBack={frame.canGoBack} direction={frame.direction} status={STATUS_LABEL[controller.status]} onBack={frame.onBack}>
       <section className="page manual-page">
+        {controller.wasRestored ? <DraftRecoveryNotice /> : null}
+
         <section className="manual-section manual-question" aria-label="问题信息">
           <h2 className="section-title">问题信息</h2>
           <label className="field">
@@ -95,9 +106,20 @@ export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPage
         <ManualValidationSummary issues={controller.issues} onFocusFirst={focusFirstIssue} />
         <div className="page__actions">
           <button type="button" className={`btn ${controller.status === 'saved' ? 'is-success' : ''}`} onClick={controller.saveDraft}>保存草稿</button>
-          <button type="button" className="btn btn--primary" onClick={complete}>生成正式结果</button>
         </div>
         <button type="button" className="btn" onClick={() => setRestoreAllOpen(true)}>恢复全部自动值</button>
+
+        <PageActionBar
+          secondary={<button type="button" className="btn" onClick={() => setNewCastOpen(true)}>开始新一卦</button>}
+          primary={
+            <button type="button" className="btn btn--primary" onClick={complete} disabled={controller.issues.length > 0 || !controller.chart}>
+              生成正式结果
+            </button>
+          }
+          hint={hint.hint}
+          hintTone={hint.hintTone}
+        />
+
         <ConfirmDialog
           open={restoreAllOpen}
           title="恢复全部自动值"
@@ -105,6 +127,15 @@ export function ManualPage({ onCaseCreated, frame = DETACHED_FRAME }: ManualPage
           confirmText="确认恢复"
           onConfirm={() => { controller.restoreAll(); setRestoreAllOpen(false) }}
           onCancel={() => setRestoreAllOpen(false)}
+        />
+        <ConfirmDialog
+          open={newCastOpen}
+          title="开始新一卦？"
+          message="当前未完成的内容会被清空，且无法恢复。"
+          confirmText="清空并重新开始"
+          cancelText="继续当前卦"
+          onConfirm={discardAndRestart}
+          onCancel={() => setNewCastOpen(false)}
         />
       </section>
     </PageFrame>

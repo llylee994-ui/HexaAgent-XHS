@@ -8,6 +8,8 @@ export interface ManualDraftSnapshot extends ManualEditorState {
   caseId: string
   openFushen: readonly LinePosition[]
   updatedAt: string
+  /** 已生成正式结果的轮次；只服务于“从结果页返回继续校正”，不再带进下一次全新录入 */
+  completed?: boolean
 }
 
 export interface ManualDraftStore {
@@ -44,11 +46,17 @@ function isValidSnapshot(value: unknown): value is ManualDraftSnapshot {
   if (new Set(value.openFushen).size !== value.openFushen.length) return false
   if (value.selectedHexagramName && !searchHexagrams(value.selectedHexagramName).some((item) => item.name === value.selectedHexagramName)) return false
   if (!isRecord(value.overrides)) return false
+  if (value.completed !== undefined && typeof value.completed !== 'boolean') return false
   return true
 }
 
 function storage(): Storage | null {
-  return globalThis.localStorage ?? null
+  try {
+    // 容器禁用存储时，读取 localStorage 这个属性本身就会抛 SecurityError
+    return globalThis.localStorage ?? null
+  } catch {
+    return null
+  }
 }
 
 export const manualDraftStore: ManualDraftStore = {
